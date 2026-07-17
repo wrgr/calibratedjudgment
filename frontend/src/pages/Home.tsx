@@ -4,8 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { isStaff, useAuth } from '../auth';
 import { Drawer } from '../components/Drawer';
-import type { AssessmentSummary, Trace } from '../types';
+import type { AssessmentMode, AssessmentSummary, Trace } from '../types';
 import { downloadJSON } from '../types';
+import { isModeEnabled } from '../modes';
 
 const MODE_LABEL: Record<string, string> = {
   essay_trace: 'Essay + AI trace',
@@ -48,14 +49,20 @@ export default function Home() {
         >
           + Import trace &amp; essay
         </button>
-        <Link to="/assess/fr" className="card px-3 py-1.5">Start a free-response task ›</Link>
-        <Link to="/assess/scenario" className="card px-3 py-1.5">Start a scenario ›</Link>
+        {isModeEnabled('free_response') && (
+          <Link to="/assess/fr" className="card px-3 py-1.5">Start a free-response task ›</Link>
+        )}
+        {isModeEnabled('scenario') && (
+          <Link to="/assess/scenario" className="card px-3 py-1.5">Start a scenario ›</Link>
+        )}
         <span style={{ color: 'var(--ink-muted)' }}>Exemplars carry demo scores — no API key needed to explore.</span>
       </div>
 
       {isLoading && <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>Loading…</div>}
 
-      {(['essay_trace', 'free_response', 'scenario'] as const).map((mode) => {
+      {(['essay_trace', 'free_response', 'scenario'] as const)
+        .filter((mode) => isModeEnabled(mode as AssessmentMode))
+        .map((mode) => {
         const items = byMode(mode);
         if (!items.length) return null;
         return (

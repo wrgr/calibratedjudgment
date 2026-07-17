@@ -3,8 +3,17 @@ import { useState } from 'react';
 import { api } from '../api/client';
 import { RubricEditor } from '../components/RubricEditor';
 import type { ContentItem, Rubric } from '../types';
+import { isModeEnabled } from '../modes';
 
 type Tab = 'rubrics' | 'scenarios' | 'prompts';
+
+// Scenario authoring is mode B; free-response prompt authoring is mode C. Only
+// show a tab while its mode is enabled — rubrics belong to mode A and stay.
+const TABS: Tab[] = [
+  'rubrics',
+  ...(isModeEnabled('scenario') ? (['scenarios'] as Tab[]) : []),
+  ...(isModeEnabled('free_response') ? (['prompts'] as Tab[]) : []),
+];
 
 /** Content library: rubric editor (versioned) + scenario / FR-prompt inventories. */
 export default function Library() {
@@ -36,7 +45,7 @@ export default function Library() {
       </header>
 
       <nav className="mb-4 flex gap-1 text-xs" aria-label="Library sections">
-        {(['rubrics', 'scenarios', 'prompts'] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}

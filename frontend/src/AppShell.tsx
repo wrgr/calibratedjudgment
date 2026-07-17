@@ -13,7 +13,7 @@ const NAV: NavItem[] = [
   { to: '/', label: 'Home', caption: 'sessions · tasks · reports' },
   { to: '/review', label: 'Needs Your Judgment', caption: 'routed for instructor scoring', staffOnly: true },
   { to: '/write', label: 'Writing Session', caption: 'live chat → gradeable trace' },
-  { to: '/library', label: 'Library', caption: 'rubrics · scenarios · prompts', staffOnly: true },
+  { to: '/library', label: 'Library', caption: 'rubrics · authoring', staffOnly: true },
   { to: '/admin', label: 'Admin', caption: 'users · reliability · export', adminOnly: true },
   { to: '/settings', label: 'Settings', caption: 'provider · model · account' },
 ];
@@ -47,7 +47,7 @@ export default function AppShell() {
           Platform
         </div>
         <div className="mt-1.5 text-[11px] leading-snug" style={{ color: 'var(--rail-muted)' }}>
-          Competence from process and product — essay traces, scenarios, free response.
+          Competence from process and product — essay traces with AI reliance.
         </div>
 
         <nav className="mt-6 flex flex-col gap-0.5" aria-label="Primary">

@@ -2,8 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../api/client';
 import { downloadJSON } from '../types';
+import { isModeEnabled } from '../modes';
 
 type Tab = 'reliability' | 'annotate' | 'novel' | 'users' | 'export';
+
+// "Annotate LLM grading" only surfaces scenario/free-response rows; "Novel
+// equivalents" is free-response only. Hide each tab while its mode(s) are off.
+const SHOW_ANNOTATE = isModeEnabled('scenario') || isModeEnabled('free_response');
+const SHOW_NOVEL = isModeEnabled('free_response');
 
 export default function Admin() {
   const [tab, setTab] = useState<Tab>('reliability');
@@ -20,8 +26,8 @@ export default function Admin() {
       <nav className="mb-4 flex flex-wrap gap-1 text-xs" aria-label="Admin sections">
         {([
           ['reliability', 'Grading reliability'],
-          ['annotate', 'Annotate LLM grading'],
-          ['novel', 'Novel equivalents'],
+          ...(SHOW_ANNOTATE ? [['annotate', 'Annotate LLM grading']] : []),
+          ...(SHOW_NOVEL ? [['novel', 'Novel equivalents']] : []),
           ['users', 'Users'],
           ['export', 'Research export'],
         ] as [Tab, string][]).map(([t, label]) => (
