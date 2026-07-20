@@ -91,9 +91,7 @@ def create_assessment(body: CreateAssessment, user: dict = Depends(security.requ
         raise HTTPException(status_code=422, detail="Invalid mode.")
     content_version = ""
     if body.contentId:
-        kind = {"essay_trace": "rubric", "scenario": "scenario",
-                "free_response": "fr_prompt"}[body.mode]
-        item = db.get_content(kind, body.contentId)
+        item = db.get_content("rubric", body.contentId)
         if not item:
             raise HTTPException(status_code=404, detail="Content not found.")
         content_version = item["version"]
@@ -110,19 +108,16 @@ def get_assessment(assessment_id: str, user: dict = Depends(security.require_use
     a = _get_owned(assessment_id, user)
     out = _assessment_out(a, include_detail=True)
 
-    if a["mode"] == "essay_trace":
-        records = db.get_score_records(assessment_id)
-        layer_b = db.get_layer_b(assessment_id)
-        out["scores"] = [_score_record_out(r) for r in records]
-        out["layerB"] = layer_b
-        rubric_item = db.get_content("rubric", a["content_id"], a["content_version"]) \
-            or db.get_content("rubric", a["content_id"])
-        if rubric_item and records:
-            dims = div.compute_divergence(rubric_item["payload"], records)
-            out["divergence"] = dims
-            out["interpretation"] = div.interpret_divergence(dims, layer_b)
-    else:
-        out["evaluations"] = db.get_evaluations(assessment_id)
+    records = db.get_score_records(assessment_id)
+    layer_b = db.get_layer_b(assessment_id)
+    out["scores"] = [_score_record_out(r) for r in records]
+    out["layerB"] = layer_b
+    rubric_item = db.get_content("rubric", a["content_id"], a["content_version"]) \
+        or db.get_content("rubric", a["content_id"])
+    if rubric_item and records:
+        dims = div.compute_divergence(rubric_item["payload"], records)
+        out["divergence"] = dims
+        out["interpretation"] = div.interpret_divergence(dims, layer_b)
     return out
 
 

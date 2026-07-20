@@ -1,4 +1,4 @@
-"""Content routes: rubrics / scenarios / FR prompts (versioned) + provider info."""
+"""Content routes: rubrics (versioned) + provider info."""
 
 import re
 
@@ -8,11 +8,10 @@ from pydantic import BaseModel
 from .. import config
 from ..core import llm, security
 from ..db import database as db
-from ..services import loaders
 
 router = APIRouter(prefix="/api", tags=["content"])
 
-_KIND_BY_PATH = {"rubrics": "rubric", "scenarios": "scenario", "prompts": "fr_prompt"}
+_KIND_BY_PATH = {"rubrics": "rubric"}
 
 
 def bump_version(version: str) -> str:
@@ -33,11 +32,6 @@ def _kind(path_kind: str) -> str:
 @router.get("/content/{path_kind}")
 def list_items(path_kind: str, user: dict = Depends(security.require_user)):
     kind = _kind(path_kind)
-    # Scenarios and FR prompts carry expert answers / scored key points — full
-    # payloads are staff-only. Learners get sanitized task listings from the
-    # mode-specific routers (/api/fr/prompts, /api/scenario/...).
-    if kind != "rubric" and user["role"] not in ("admin", "instructor"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions.")
     return list_content_public(kind)
 
 
@@ -59,8 +53,6 @@ def list_content_public(kind: str):
 def get_item(path_kind: str, content_id: str, version: str = None,
              user: dict = Depends(security.require_user)):
     kind = _kind(path_kind)
-    if kind != "rubric" and user["role"] not in ("admin", "instructor"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions.")
     item = db.get_content(kind, content_id, version)
     if not item:
         raise HTTPException(status_code=404, detail="Content not found.")
@@ -91,17 +83,11 @@ def save_item(path_kind: str, content_id: str, body: SavePayload,
     current = db.get_content(kind, content_id)
     payload = body.payload
 
-    if kind == "scenario":
-        payload = loaders.normalize_scenario(payload)
-    elif kind == "fr_prompt":
-        payload = loaders.normalize_prompt(payload)
-
     if current:
         new_version = bump_version(current["version"])
     else:
         new_version = payload.get("version") or "1.0"
-    if kind == "rubric":
-        payload["version"] = new_version
+    payload["version"] = new_version
 
     db.upsert_content(kind, content_id, new_version, payload,
                       created_by=user["username"])

@@ -1,16 +1,15 @@
 # Assessment Platform
 
-A unified research platform for assessing competence from **process, not just outcome** — combining and maturing two prior research prototypes (a trace-grounded writing-assessment demo and a performative-assessment app) into one system.
+A research platform for assessing writing competence from **process, not just
+outcome**: writing-standard mastery inferred from both the final essay
+(*product*) and the student↔AI dialogue that produced it (*trace*), with their
+divergence as the formative signal. One-criterion-per-LLM-call grading, 3
+passes, median + spread, a verbatim evidence-provenance guard, and a
+student-attribution guard.
 
-Three assessment modes, one evidence model:
-
-| Mode | What it measures | Method |
-|---|---|---|
-| **Essay + AI trace** | Writing-standard mastery from both the final essay (*product*) and the student↔AI dialogue (*trace*); their divergence is the formative signal | One-criterion-per-LLM-call, 3 passes, median + spread, verbatim evidence-provenance guard, student-attribution guard |
-| **Scenario** | Procedural/diagnostic knowledge under free recall, then structured CTA probing | Recall → gap analysis → typed probes (sequencing/how/rationale/decision/error/edge case); Coverage + explanation Quality |
-| **Free response** | Spontaneously produced knowledge in unaided single-pass writing | Coverage + Chi explanation-quality, deterministic SOLO derivation, keystroke writing-process overlay |
-
-Plus: instructor review queue with overrides, versioned rubrics, a grading reliability dashboard (LLM-vs-instructor calibration), and a versioned research export.
+Plus: instructor review queue with overrides, versioned rubrics, a grading
+reliability dashboard (LLM-vs-instructor calibration, derived from overrides),
+and a versioned research export.
 
 **Governing rule ("no row, no claim"):** every signal rendered as a claim anywhere in the platform must have a row in [`docs/evidence-model.md`](docs/evidence-model.md) stating the claim it supports, its confidence, and what it does *not* rule out.
 
@@ -34,7 +33,7 @@ Open http://localhost:5173 and sign in with a demo account:
 
 Change these before any non-demo use.
 
-No API key? The platform still runs: scoring falls back to keyword matching, and bundled exemplar sessions carry precomputed scores. Two ways to enable live LLM grading:
+No API key? Bundled exemplar sessions still carry precomputed demo scores, so the cold-start demo needs zero setup. Two ways to enable live LLM grading of a new essay+trace assessment:
 
 - **Server keys** (default): add provider keys to `.env` (copy `.env.example`). They stay server-side and are never sent to the browser.
 - **Bring your own key**: any signed-in user can save a personal key under **Settings → Use your own API key**. It lives in that browser's localStorage only and rides on each of the user's grading requests as a header; the server uses it transiently and never stores or logs it. While set, it takes precedence over the server key.
@@ -43,13 +42,13 @@ No API key? The platform still runs: scoring falls back to keyword matching, and
 
 - `backend/` — FastAPI + SQLite. All LLM calls, grading, scoring, and the research database live here.
 - `frontend/` — React 18 + Vite + TypeScript + Tailwind SPA.
-- `content/` — seed corpus: rubrics, scenarios, free-response prompts, exemplar sessions (loaded into the DB by `make seed`).
+- `content/` — seed corpus: rubrics and exemplar sessions (loaded into the DB by `make seed`).
 - `docs/` — the unified evidence model, research-export data dictionary, testing notes.
 
 ## Development
 
 ```bash
-make test       # backend pytest suite (147 tests, no network or keys needed)
+make test       # backend pytest suite (69 tests, no network or keys needed)
 make build      # typecheck + production frontend build
 make e2e        # zero-API-key end-to-end smoke test
 ```
@@ -67,7 +66,7 @@ state lives in one SQLite database plus generated report files under
 ### Option A — Docker (recommended)
 
 ```bash
-cp .env.example .env    # optional: add provider keys; empty = keyword fallback
+cp .env.example .env    # optional: add provider keys for live grading
 docker compose up --build
 ```
 
@@ -96,7 +95,7 @@ if you want the seed output printed explicitly.
   (BYO) keys especially should never transit plain HTTP.
 - **Persist and back up `backend/data/`** (or point `ASSESSMENT_DATA_DIR` /
   `ASSESSMENT_DB_PATH` somewhere durable). The SQLite file is the research
-  record: assessments, score records, evaluations, annotations.
+  record: assessments, score records, and instructor overrides.
 - **Provider keys** go in `.env` (see `.env.example`); they are read at startup
   and never exposed to the browser. `DEFAULT_PROVIDER` picks the fallback
   provider for users with no preference.
@@ -106,18 +105,6 @@ if you want the seed output printed explicitly.
 - **Scope note:** this is a research instrument. BYO-key mode and the demo
   accounts are suited to pilots and demos; review your institution's data
   handling requirements (e.g. FERPA) before collecting real student data.
-
-## Importing legacy V5 reports (future work)
-
-Assessments produced by Performative Assessment V5 live on disk as
-`reports/<username>/*.md` (plus `.trace.json` writing-process sidecars and
-`_annotations/*.json` instructor verdicts) wherever that instance ran — they were
-never committed to git. An importer is planned but not yet built:
-`backend/app/services/report_parser.py` is retained precisely for it. The importer
-will walk a copied `reports/` folder, parse each Markdown report, and map the rows
-onto `create_assessment(assessment_id=…)` + `upsert_evaluation` (both idempotent,
-so re-running is safe), stamping rows with their original v2 schema version.
-Bring the report files within reach and it can be wired up.
 
 ## Exporting as a standalone repository
 

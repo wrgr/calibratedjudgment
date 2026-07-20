@@ -3,24 +3,16 @@
 
 def test_content_seeded(admin_client):
     rubrics = admin_client.get("/api/content/rubrics").json()
-    scenarios = admin_client.get("/api/content/scenarios").json()
-    prompts = admin_client.get("/api/content/prompts").json()
-    assert any(r["contentId"] == "mccr-w11-12-arg" for r in rubrics) or rubrics
-    assert any(s["contentId"] == "Changing_Tire" for s in scenarios)
-    assert any(p["contentId"] == "active_listening_paragraph" for p in prompts)
-    # normalisation ran at seed time: pooled/migrated key points are dicts
-    prompt = next(p for p in prompts if p["contentId"] == "active_listening_paragraph")
-    kps = prompt["payload"]["expert_answers"][0]["key_points"]
-    assert kps and isinstance(kps[0], dict) and "construct" in kps[0]
+    assert any(r["contentId"] == "mccr-w11-12-arg" for r in rubrics)
 
 
 def test_edit_bumps_version(admin_client):
-    scenarios = admin_client.get("/api/content/scenarios").json()
-    target = scenarios[0]
+    rubrics = admin_client.get("/api/content/rubrics").json()
+    target = rubrics[0]
     before = target["version"]
     r = admin_client.put(
-        f"/api/content/scenarios/{target['contentId']}",
-        json={"payload": {**target["payload"], "description": "edited"}},
+        f"/api/content/rubrics/{target['contentId']}",
+        json={"payload": {**target["payload"], "assignmentGuidance": "edited"}},
         headers={"X-Requested-With": "fetch"},
     )
     assert r.status_code == 200
@@ -29,15 +21,15 @@ def test_edit_bumps_version(admin_client):
     assert after == (f"{before}-t1" if "-t" not in before else after)
     # both versions retrievable
     old = admin_client.get(
-        f"/api/content/scenarios/{target['contentId']}", params={"version": before}
+        f"/api/content/rubrics/{target['contentId']}", params={"version": before}
     )
     assert old.status_code == 200
 
 
 def test_students_cannot_edit_content(student_client):
     r = student_client.put(
-        "/api/content/scenarios/Changing_Tire",
-        json={"payload": {"title": "x"}},
+        "/api/content/rubrics/mccr-w11-12-arg",
+        json={"payload": {"assignmentGuidance": "x"}},
         headers={"X-Requested-With": "fetch"},
     )
     assert r.status_code == 403

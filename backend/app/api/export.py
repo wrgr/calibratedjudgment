@@ -1,10 +1,9 @@
 """Research export v3 + override corpus.
 
-The v3 dictionary is the union of the V5 (v2) evaluation fields and the Mode A
-(essay+trace) aggregates, one row per assessed task, documented in
-docs/research_export_data_dictionary.md. EXPORT_FIELDS below is the single
-source of truth for the column order — the doc and this list must move together
-(tests enforce both).
+One row per graded essay+trace assessment, aggregated from score_records,
+documented in docs/research_export_data_dictionary.md. EXPORT_FIELDS below is
+the single source of truth for the column order — the doc and this list must
+move together (tests enforce both).
 """
 
 import csv
@@ -25,8 +24,11 @@ EXPORT_FIELDS = [
     "role",
     "assessment_id",
     "mode",
-    *db.EVALUATION_FIELDS,
-    # Mode A (essay_trace) aggregates — blank for other modes
+    "task_title",
+    "report_type",
+    "timestamp",
+    "export_schema_version",
+    "word_count",
     "trace_score_median",
     "product_score_median",
     "mean_divergence",
@@ -34,22 +36,13 @@ EXPORT_FIELDS = [
     "layer_b_verification_rate",
     "override_count",
     "needs_review_count",
-    # instructor annotations (LLM-vs-instructor calibration labels)
-    "annotation_label",
-    "annotation_notes",
-    "annotation_reviewer",
-    "annotation_updated_at",
 ]
 
 
 def build_export_rows() -> list[dict]:
     rows = []
 
-    # Modes B & C: structured evaluation rows (already joined to users + annotations)
-    for r in db.all_evaluation_rows():
-        rows.append({f: str(r.get(f, "") or "") for f in EXPORT_FIELDS})
-
-    # Mode A: one row per graded essay_trace assessment, aggregated from score_records
+    # One row per graded essay_trace assessment, aggregated from score_records
     for a in db.list_assessments(mode="essay_trace"):
         records = db.get_score_records(a["id"])
         if not records:

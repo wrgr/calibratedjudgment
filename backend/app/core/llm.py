@@ -32,8 +32,8 @@ _RATE_LIMIT_MAX_RETRIES = 2
 # batch execution and provider infrastructure differences can still produce
 # rare small variance even at temperature=0. Seed support is provider-dependent
 # and applied best-effort -- see _supports_seed(). Narrative/generative calls
-# (examiner turns, report prose, scenario/prompt AI-drafting) intentionally do
-# NOT use these -- their variability is harmless or desirable.
+# (the writing-session tutor chat) intentionally do NOT use these -- their
+# variability is harmless or desirable.
 # ─────────────────────────────────────────────────────────────────────────────
 EVALUATIVE_TEMPERATURE = 0.0
 EVALUATIVE_SEED = 42  # arbitrary fixed seed; only applied where the provider supports it

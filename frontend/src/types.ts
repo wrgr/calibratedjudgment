@@ -1,6 +1,5 @@
-// Data model for the platform frontend — ported from TGFWA src/types.ts and
-// extended for the three assessment modes. Shapes mirror the API's camelCase
-// serialisation (backend/app/api/sessions.py).
+// Data model for the platform frontend — ported from TGFWA src/types.ts.
+// Shapes mirror the API's camelCase serialisation (backend/app/api/sessions.py).
 
 export type Speaker = 'student' | 'assistant';
 
@@ -111,7 +110,7 @@ export interface DivergenceInterpretation {
   tone: 'flag' | 'target' | 'valid' | 'neutral';
 }
 
-export type AssessmentMode = 'essay_trace' | 'scenario' | 'free_response';
+export type AssessmentMode = 'essay_trace';
 export type AssessmentStatus = 'draft' | 'in_progress' | 'grading' | 'graded' | 'error';
 
 export interface AssessmentSummary {

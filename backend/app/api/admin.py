@@ -1,12 +1,11 @@
 """Admin & instructor research surface: user management, grading-reliability
-dashboard, FR match stats, novel-equivalent review, annotations, AI authoring."""
+dashboard."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..core import security
 from ..db import database as db
-from ..services import llm_bridge, loaders, runner as runner_mod
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -71,114 +70,7 @@ def update_user(username: str, body: UpdateUser,
 
 @router.get("/reliability")
 def reliability(user: dict = Depends(security.require_staff)):
-    """LLM-vs-instructor calibration: agreement rate, average LLM score per
-    annotation label (over-crediting signal), most-disagreeing tasks first."""
-    return db.assessment_calibration_stats()
-
-
-@router.get("/fr-match-stats")
-def fr_match_stats(user: dict = Depends(security.require_staff)):
-    return db.get_fr_match_stats()
-
-
-# ── Novel-equivalent review queue (staff) ─────────────────────────────────────
-
-@router.get("/novel-equivalents")
-def novel_equivalents(status: str = "pending",
-                      user: dict = Depends(security.require_staff)):
-    return db.list_novel_equivalent_reviews(status)
-
-
-class ReviewStatus(BaseModel):
-    status: str  # promoted | dismissed | pending
-
-
-@router.post("/novel-equivalents/{review_id}/status")
-def set_review_status(review_id: int, body: ReviewStatus,
-                      user: dict = Depends(security.require_staff)):
-    if not db.get_novel_equivalent_review(review_id):
-        raise HTTPException(status_code=404, detail="Review not found.")
-    if not db.set_novel_equivalent_status(review_id, body.status):
-        raise HTTPException(status_code=422, detail="Invalid status.")
-    return {"ok": True}
-
-
-# ── Instructor annotations (LLM-grading verdicts; staff) ──────────────────────
-
-class AnnotateRequest(BaseModel):
-    taskTitle: str = ""
-    label: str  # correct | partial | missing | needs_expert_review
-    notes: str = ""
-
-
-@router.post("/assessments/{assessment_id}/annotate")
-def annotate(assessment_id: str, body: AnnotateRequest,
-             user: dict = Depends(security.require_staff)):
-    if not db.get_assessment(assessment_id):
-        raise HTTPException(status_code=404, detail="Assessment not found.")
-    task_title = body.taskTitle
-    if not task_title:
-        evals = db.get_evaluations(assessment_id)
-        task_title = evals[0]["task_title"] if evals else ""
-    if not db.set_annotation(assessment_id, task_title, body.label,
-                             security.sanitize_str(body.notes, 2000), user["username"]):
-        raise HTTPException(status_code=422, detail="Invalid label.")
-    return {"ok": True}
-
-
-# ── AI-assisted content authoring (staff) ─────────────────────────────────────
-
-class DraftRequest(BaseModel):
-    description: str
-
-
-@router.post("/authoring/scenario-draft")
-def scenario_draft(body: DraftRequest, user: dict = Depends(security.require_staff),
-                   override: dict | None = Depends(llm_bridge.llm_override)):
-    try:
-        _, model, cfg = llm_bridge.resolve_for_user(user, override)
-    except llm_bridge.UnknownProvider as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except llm_bridge.LLMNotConfigured as e:
-        raise HTTPException(status_code=409, detail=str(e))
-    draft = runner_mod.generate_scenario_draft(
-        security.sanitize_str(body.description, 2000), model, cfg["api_key"], cfg["base_url"])
-    if not draft or not draft.get("title"):
-        raise HTTPException(status_code=502, detail="The model returned an unusable draft. Try again.")
-    # V5 drafts use expert_answer/key_points/rubric at the top level — fold into
-    # the scenario schema and normalise exactly like a file-loaded scenario.
-    if "expert_answers" not in draft:
-        draft["expert_answers"] = [{
-            "answer": draft.pop("expert_answer", ""),
-            "key_points": draft.pop("key_points", []),
-            "rubric": draft.pop("rubric", {}),
-        }]
-    draft["id"] = _slug(draft["title"])
-    return {"draft": loaders.normalize_scenario(draft)}
-
-
-@router.post("/authoring/prompt-draft")
-def prompt_draft(body: DraftRequest, user: dict = Depends(security.require_staff),
-                 override: dict | None = Depends(llm_bridge.llm_override)):
-    try:
-        _, model, cfg = llm_bridge.resolve_for_user(user, override)
-    except llm_bridge.UnknownProvider as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except llm_bridge.LLMNotConfigured as e:
-        raise HTTPException(status_code=409, detail=str(e))
-    draft = runner_mod.generate_prompt_draft(
-        security.sanitize_str(body.description, 2000), model, cfg["api_key"], cfg["base_url"])
-    if not draft or not draft.get("title"):
-        raise HTTPException(status_code=502, detail="The model returned an unusable draft. Try again.")
-    if "expert_answers" not in draft:
-        draft["expert_answers"] = [{
-            "answer": draft.pop("expert_answer", ""),
-            "key_points": draft.pop("key_points", []),
-        }]
-    draft["id"] = _slug(draft["title"])
-    return {"draft": loaders.normalize_prompt(draft)}
-
-
-def _slug(text: str) -> str:
-    import re
-    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_") or "draft"
+    """LLM-vs-instructor calibration for essay/trace grading: how often
+    routed-for-judgment criteria get overridden, and by how much the teacher's
+    score differs from the LLM's median once they do."""
+    return db.mode_a_reliability_stats()

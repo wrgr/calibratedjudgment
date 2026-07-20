@@ -2,10 +2,11 @@
 
 The key must (1) reach the core LLM call for that request, (2) make an
 unconfigured provider usable, and (3) never be persisted anywhere — not in the
-users table, assessment artifacts, or evaluation rows.
+users table or assessment artifacts.
 """
 
 import sqlite3
+import time
 
 import pytest
 
@@ -75,9 +76,20 @@ def test_headers_without_key_still_override_model():
         config.PROVIDERS["OpenAI"]["api_key"] = orig
 
 
-# ── API pass-through ──────────────────────────────────────────────────────────
+# ── API pass-through (Mode A grading) ─────────────────────────────────────────
 
-def test_fr_submit_uses_browser_key(student_client, monkeypatch):
+def _wait_for_job(client, job_id, timeout=60):
+    deadline = time.time() + timeout
+    job = None
+    while time.time() < deadline:
+        job = client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] != "running":
+            break
+        time.sleep(0.2)
+    return job
+
+
+def test_grade_endpoint_uses_browser_key(admin_client, monkeypatch):
     """The header key must reach the core grading call — and only that call."""
     captured = {}
 
@@ -85,61 +97,35 @@ def test_fr_submit_uses_browser_key(student_client, monkeypatch):
         captured["api_key"] = api_key
         captured["model"] = model
         captured["base_url"] = base_url
-        return ('{"matches": [], "missed_points": [], "strengths": [], '
-                '"gaps": [], "feedback": "graded"}')
+        return '{"score": 4, "evidence": [], "selfConfidence": "high"}'
 
-    monkeypatch.setattr("app.services.scoring.llm_chat_json", fake_chat_json)
+    monkeypatch.setattr("app.core.llm.llm_chat_json", fake_chat_json)
 
-    r = student_client.post("/api/fr/submit", json={
-        "promptId": "active_listening_paragraph",
-        "text": "Active listening means paraphrasing and eye contact.",
-    }, headers=HEADERS)
+    r = admin_client.post("/api/assessments/exemplar-alex/grade", headers=HEADERS)
     assert r.status_code == 200, r.text
+    job = _wait_for_job(admin_client, r.json()["jobId"])
+    assert job["status"] == "done", job
+
     assert captured["api_key"] == BYO_KEY
     assert captured["model"] == "claude-opus-4-8"
     assert "anthropic" in captured["base_url"]
 
-    # llm metadata recorded for reproducibility must not include the key
-    from app.db import database as db
-    a = db.get_assessment(r.json()["assessmentId"])
-    assert a["artifacts"]["llm"] == {"provider": "Claude", "model": "claude-opus-4-8"}
-    db.delete_assessment(a["id"])
 
-
-def test_fr_submit_without_headers_stays_keyword_fallback(student_client):
-    r = student_client.post("/api/fr/submit", json={
-        "promptId": "active_listening_paragraph",
-        "text": "Active listening means paraphrasing and eye contact.",
-    }, headers={"X-Requested-With": "fetch"})
-    assert r.status_code == 200
-    from app.db import database as db
-    a = db.get_assessment(r.json()["assessmentId"])
-    assert a["artifacts"]["llm"]["model"] == "keyword-fallback"
-    db.delete_assessment(a["id"])
-
-
-def test_unknown_provider_header_is_422(student_client):
-    r = student_client.post("/api/fr/submit", json={
-        "promptId": "active_listening_paragraph",
-        "text": "some text",
-    }, headers={**HEADERS, "X-LLM-Provider": "Bogus"})
+def test_unknown_provider_header_is_422(admin_client):
+    r = admin_client.post("/api/assessments/exemplar-alex/grade",
+                          headers={**HEADERS, "X-LLM-Provider": "Bogus"})
     assert r.status_code == 422
 
 
-def test_byo_key_is_never_persisted(student_client, monkeypatch):
-    """After a BYO-key request, the key must not exist anywhere in the database."""
+def test_byo_key_is_never_persisted(admin_client, monkeypatch):
+    """After a BYO-key grading request, the key must not exist anywhere in the database."""
     monkeypatch.setattr(
-        "app.services.scoring.llm_chat_json",
-        lambda *a, **k: ('{"matches": [], "missed_points": [], "strengths": [], '
-                         '"gaps": [], "feedback": "ok"}'))
-    r = student_client.post("/api/fr/submit", json={
-        "promptId": "active_listening_paragraph",
-        "text": "Paraphrasing shows the speaker they were heard.",
-    }, headers=HEADERS)
-    assert r.status_code == 200
-    aid = r.json()["assessmentId"]
-    r = student_client.post(f"/api/fr/{aid}/finalize", headers=HEADERS)
-    assert r.status_code == 200
+        "app.core.llm.llm_chat_json",
+        lambda *a, **k: '{"score": 3, "evidence": [], "selfConfidence": "med"}')
+    r = admin_client.post("/api/assessments/exemplar-alex/grade", headers=HEADERS)
+    assert r.status_code == 200, r.text
+    job = _wait_for_job(admin_client, r.json()["jobId"])
+    assert job["status"] == "done", job
 
     from app.db import database as db
     with sqlite3.connect(str(db.DB_FILE)) as conn:
@@ -147,19 +133,6 @@ def test_byo_key_is_never_persisted(student_client, monkeypatch):
                 "SELECT name FROM sqlite_master WHERE type='table'").fetchall():
             for row in conn.execute(f"SELECT * FROM {table}").fetchall():
                 assert BYO_KEY not in str(row), f"BYO key leaked into table {table}"
-    db.delete_assessment(aid)
-
-
-def test_scenario_runner_state_never_stores_key(student_client, monkeypatch):
-    """The DB-backed runner state must not carry credentials (to_dict excludes them)."""
-    r = student_client.post("/api/scenario/start", json={"scenarioId": "Changing_Tire"},
-                            headers=HEADERS)
-    assert r.status_code == 200
-    aid = r.json()["assessmentId"]
-    from app.db import database as db
-    state = db.load_run_state(aid)
-    assert BYO_KEY not in str(state)
-    db.delete_assessment(aid)
 
 
 # ── providers endpoint & validate-key ─────────────────────────────────────────
@@ -189,19 +162,3 @@ def test_validate_key_requires_auth(client):
     r = client.post("/api/providers/Claude/validate-key", json={"apiKey": "x"},
                     headers={"X-Requested-With": "fetch"})
     assert r.status_code == 401
-
-
-def test_rejected_byo_key_is_502_not_500(student_client, monkeypatch):
-    from app.core.llm import LLMError
-
-    def raise_auth(*a, **k):
-        raise LLMError("Authentication failed (HTTP 401): the API key was rejected.")
-
-    monkeypatch.setattr("app.services.scoring.llm_chat_json", raise_auth)
-    r = student_client.post("/api/fr/submit", json={
-        "promptId": "active_listening_paragraph",
-        "text": "some text to grade",
-    }, headers=HEADERS)
-    assert r.status_code == 502
-    assert "rejected" in r.json()["detail"]
-    assert BYO_KEY not in r.text

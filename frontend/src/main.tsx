@@ -14,10 +14,7 @@ import SessionDetail from './pages/SessionDetail';
 import Review from './pages/Review';
 import Write from './pages/Write';
 import Library from './pages/Library';
-import AssessFR from './pages/AssessFR';
-import AssessScenario from './pages/AssessScenario';
 import Admin from './pages/Admin';
-import { isModeEnabled } from './modes';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -36,10 +33,6 @@ const router = createHashRouter([
       { path: '/review', element: <Review /> },
       { path: '/write', element: <Write /> },
       { path: '/library', element: <Library /> },
-      // Mode B/C assessment-taking routes are gated behind ENABLED_MODES so
-      // they're unreachable while hidden; the page components are kept intact.
-      ...(isModeEnabled('free_response') ? [{ path: '/assess/fr', element: <AssessFR /> }] : []),
-      ...(isModeEnabled('scenario') ? [{ path: '/assess/scenario', element: <AssessScenario /> }] : []),
       { path: '/admin', element: <Admin /> },
     ],
   },

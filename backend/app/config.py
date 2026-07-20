@@ -79,12 +79,6 @@ PROVIDERS = {
 
 DEFAULT_PROVIDER = os.environ.get("DEFAULT_PROVIDER", "Claude")
 
-# Self-consistency scoring: run the FINAL grading call (FR and scenario) N times
-# and take a majority vote per key point, instead of trusting a single sample.
-# Off by default -- costs SELF_CONSISTENCY_SAMPLES x the LLM calls and latency.
-SELF_CONSISTENCY_SCORING = os.environ.get("SELF_CONSISTENCY_SCORING") == "1"
-SELF_CONSISTENCY_SAMPLES = int(os.environ.get("SELF_CONSISTENCY_SAMPLES", "3"))
-
 
 def provider_config(name: str):
     """Resolve a provider by name; returns None when unknown."""

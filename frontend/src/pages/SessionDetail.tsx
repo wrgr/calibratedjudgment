@@ -82,17 +82,6 @@ export default function SessionDetail() {
     return <div className="card p-8 text-center text-sm" style={{ color: 'var(--ink-muted)' }}>Loading…</div>;
   }
 
-  if (assessment.mode !== 'essay_trace') {
-    return (
-      <div className="card p-8 text-sm">
-        <div className="font-semibold">{assessment.name}</div>
-        <p className="mt-2" style={{ color: 'var(--ink-secondary)' }}>
-          This is a {assessment.mode.replace('_', ' ')} assessment — its results view arrives with that mode's workspace.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b pb-4" style={{ borderColor: 'var(--gridline)' }}>

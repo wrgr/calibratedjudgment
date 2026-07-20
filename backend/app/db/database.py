@@ -7,19 +7,19 @@ Carries forward its two load-bearing conventions:
   * CREATE TABLE IF NOT EXISTS + an idempotent PRAGMA table_info -> ALTER TABLE
     ADD COLUMN loop, so existing databases widen safely as new report-facing
     evidence becomes exportable (no migration framework needed).
-  * export_schema_version stamped on every evaluation row, so longitudinal
+  * export_schema_version stamped on every assessment row, so longitudinal
     research exports can always tell which dictionary a row was written under.
 
 New in the consolidated platform:
 
-  * an `assessments` spine spanning all three modes (essay_trace / scenario /
-    free_response) with raw inputs in artifacts_json,
-  * `score_records` — per-criterion x channel rows for Mode A (the TGFWA
-    ScoreRecord model, one claim per row),
+  * an `assessments` spine for essay+trace grading, with raw inputs in
+    artifacts_json,
+  * `score_records` — per-criterion x channel rows (the TGFWA ScoreRecord
+    model, one claim per row),
   * `assessment_runs` — DB-backed live session state (replaces the V5
-    in-memory _state/_fr_state dicts, so runs survive restarts),
+    in-memory _state dict, so runs survive restarts),
   * `auth_sessions` — opaque-token auth (replaces Flask signed cookies),
-  * versioned `content_items` for rubrics / scenarios / FR prompts.
+  * versioned `content_items` for rubrics.
 """
 
 import json
@@ -36,8 +36,8 @@ DATA_DIR = Path(os.environ.get("ASSESSMENT_DATA_DIR",
 DB_FILE = Path(os.environ.get("ASSESSMENT_DB_PATH", DATA_DIR / "assessments.db"))
 
 VALID_ROLES = ("admin", "instructor", "student")
-VALID_MODES = ("essay_trace", "scenario", "free_response")
-VALID_CONTENT_KINDS = ("rubric", "scenario", "fr_prompt")
+VALID_MODES = ("essay_trace",)
+VALID_CONTENT_KINDS = ("rubric",)
 
 # pbkdf2 relies only on hashlib.pbkdf2_hmac (present in every Python build).
 # werkzeug's default of scrypt needs OpenSSL-with-scrypt, which the macOS
@@ -45,39 +45,6 @@ VALID_CONTENT_KINDS = ("rubric", "scenario", "fr_prompt")
 _HASH_METHOD = "pbkdf2:sha256"
 
 EXPORT_SCHEMA_VERSION = "3"
-
-# Canonical column list for the evaluations table (Modes B and C). Mirrors the
-# research export data dictionary (docs/research_export_data_dictionary.md);
-# the export builder derives its field list from this so the two cannot drift.
-# username/display_name/role live on users/assessments and are joined at export.
-EVALUATION_FIELDS = [
-    "task_title",
-    "report_type",
-    "timestamp",
-    "export_schema_version",
-    "product_score_percent",
-    "text_only_baseline_percent",
-    "coverage_score_percent",
-    "quality_score_percent",
-    "matched_points",
-    "missed_points",
-    "strengths",
-    "gaps",
-    "word_count",
-    "has_process_overlay",
-    "process_quadrant",
-    "effort_profile",
-    "revision_toward_quality",
-    "difficulty_point_count",
-    "authenticity",
-    "confidence_calibration",
-    "closing_nudge_used",
-    "process_caution",
-    "thinking_honey_mumford",
-    "thinking_solo",
-    "ai_assistance_used",
-    "ai_assistance_notes",
-]
 
 _SEED_USERS = [
     # (username, password, role, display_name)
@@ -141,7 +108,7 @@ def init_db():
         """)
         c.execute("""
             CREATE TABLE IF NOT EXISTS content_items (
-                kind       TEXT NOT NULL CHECK(kind IN ('rubric','scenario','fr_prompt')),
+                kind       TEXT NOT NULL CHECK(kind IN ('rubric')),
                 content_id TEXT NOT NULL,
                 version    TEXT NOT NULL,
                 payload    TEXT NOT NULL,
@@ -155,7 +122,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS assessments (
                 id              TEXT PRIMARY KEY,
                 username        TEXT NOT NULL,
-                mode            TEXT NOT NULL CHECK(mode IN ('essay_trace','scenario','free_response')),
+                mode            TEXT NOT NULL CHECK(mode IN ('essay_trace')),
                 status          TEXT NOT NULL DEFAULT 'draft'
                                 CHECK(status IN ('draft','in_progress','grading','graded','error')),
                 name            TEXT NOT NULL DEFAULT '',
@@ -206,33 +173,6 @@ def init_db():
             )
         """)
         c.execute("""
-            CREATE TABLE IF NOT EXISTS evaluations (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                assessment_id TEXT NOT NULL,
-                evaluation    TEXT NOT NULL DEFAULT '{{}}',
-                {cols},
-                UNIQUE(assessment_id, task_title)
-            )
-        """.format(cols=", ".join(f"{f} TEXT NOT NULL DEFAULT ''"
-                                  for f in EVALUATION_FIELDS)))
-        _widen(c, "evaluations",
-               {f: "TEXT NOT NULL DEFAULT ''" for f in EVALUATION_FIELDS})
-        c.execute("CREATE INDEX IF NOT EXISTS idx_evaluations_assessment "
-                  "ON evaluations(assessment_id)")
-
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS annotations (
-                assessment_id TEXT NOT NULL,
-                task_title    TEXT NOT NULL DEFAULT '',
-                label         TEXT NOT NULL
-                              CHECK(label IN ('correct','partial','missing','needs_expert_review')),
-                notes         TEXT NOT NULL DEFAULT '',
-                reviewer      TEXT NOT NULL DEFAULT '',
-                updated_at    TEXT NOT NULL,
-                PRIMARY KEY (assessment_id, task_title)
-            )
-        """)
-        c.execute("""
             CREATE TABLE IF NOT EXISTS assessment_runs (
                 assessment_id TEXT PRIMARY KEY,
                 state         TEXT NOT NULL,
@@ -260,36 +200,6 @@ def init_db():
                 key        TEXT PRIMARY KEY,
                 response   TEXT NOT NULL,
                 created_at TEXT NOT NULL
-            )
-        """)
-        # Every accepted novel-equivalent FR match is logged for admin review --
-        # promotion into a key point's exemplars list is always an explicit human
-        # action, never automatic. Scoring never waits on this.
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS novel_equivalent_review (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                prompt_id          TEXT NOT NULL,
-                key_point_id       TEXT NOT NULL,
-                construct          TEXT NOT NULL,
-                submission_excerpt TEXT NOT NULL,
-                evidence_spans     TEXT NOT NULL,
-                justification      TEXT NOT NULL,
-                pool_id            TEXT,
-                status             TEXT NOT NULL DEFAULT 'pending'
-                                   CHECK(status IN ('pending','promoted','dismissed')),
-                created_at         TEXT NOT NULL
-            )
-        """)
-        # Every accepted FR match (exemplar or novel_equivalent) is logged so the
-        # novel-equivalent rate per key point has a real denominator.
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS fr_match_log (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                prompt_id    TEXT NOT NULL,
-                key_point_id TEXT NOT NULL,
-                construct    TEXT NOT NULL,
-                match_type   TEXT NOT NULL CHECK(match_type IN ('exemplar','novel_equivalent')),
-                created_at   TEXT NOT NULL
             )
         """)
         c.commit()
@@ -446,7 +356,7 @@ def delete_auth_session(token_hash: str):
         c.commit()
 
 
-# ── Content items (versioned rubrics / scenarios / FR prompts) ────────────────
+# ── Content items (versioned rubrics) ──────────────────────────────────────────
 
 def upsert_content(kind: str, content_id: str, version: str, payload: dict,
                    created_by: str = "", active: bool = True):
@@ -586,8 +496,7 @@ def update_assessment(assessment_id: str, **fields):
 
 def delete_assessment(assessment_id: str):
     with _conn() as c:
-        for table in ("score_records", "layer_b_results", "evaluations",
-                      "annotations", "assessment_runs", "jobs"):
+        for table in ("score_records", "layer_b_results", "assessment_runs", "jobs"):
             c.execute(f"DELETE FROM {table} WHERE assessment_id=?", (assessment_id,))
         c.execute("DELETE FROM assessments WHERE id=?", (assessment_id,))
         c.commit()
@@ -712,144 +621,62 @@ def get_layer_b(assessment_id: str):
         return json.loads(row["result"]) if row else None
 
 
-# ── Evaluations (Modes B & C flattened research rows) ─────────────────────────
+# ── Grading reliability (Mode A: LLM vs instructor overrides) ─────────────────
 
-def upsert_evaluation(assessment_id: str, fields: dict, evaluation: dict = None):
-    """Insert or replace the structured research row for an assessment task.
-
-    Idempotent on (assessment_id, task_title): re-generating never duplicates.
+def mode_a_reliability_stats():
+    """LLM-vs-instructor calibration for essay/trace grading, derived entirely
+    from score_records — no separate annotation step. An instructor override
+    is itself the verdict: how often routed-for-judgment criteria get resolved,
+    and by how much the teacher's score differs from the LLM's median once they
+    do (a high average delta means the LLM is miscalibrated on that criterion).
     """
-    fields = dict(fields)
-    fields.setdefault("export_schema_version", EXPORT_SCHEMA_VERSION)
-    fields.setdefault("timestamp", utcnow())
-    cols = ", ".join(EVALUATION_FIELDS)
-    placeholders = ", ".join("?" for _ in EVALUATION_FIELDS)
     with _conn() as c:
-        c.execute(
-            f"INSERT OR REPLACE INTO evaluations (assessment_id, evaluation, {cols}) "
-            f"VALUES (?,?,{placeholders})",
-            (assessment_id, json.dumps(evaluation or {}),
-             *(str(fields.get(f, "") or "") for f in EVALUATION_FIELDS)),
-        )
-        c.commit()
+        total = c.execute(
+            "SELECT COUNT(*) FROM score_records WHERE graded_at != ''"
+        ).fetchone()[0]
+        needs_review = c.execute(
+            "SELECT COUNT(*) FROM score_records WHERE needs_review=1"
+        ).fetchone()[0]
+        overridden = c.execute(
+            "SELECT COUNT(*) FROM score_records WHERE override_ts != ''"
+        ).fetchone()[0]
+        avg_delta = c.execute(
+            "SELECT AVG(ABS(override_score - median)) FROM score_records "
+            "WHERE override_ts != '' AND median IS NOT NULL"
+        ).fetchone()[0]
 
-
-def get_evaluations(assessment_id: str):
-    with _conn() as c:
-        rows = c.execute(
-            "SELECT * FROM evaluations WHERE assessment_id=? ORDER BY task_title",
-            (assessment_id,),
+        criterion_rows = c.execute(
+            "SELECT criterion_id, COUNT(*) AS total, "
+            "  SUM(needs_review) AS needs_review, "
+            "  SUM(override_ts != '') AS overridden, "
+            "  AVG(CASE WHEN override_ts != '' AND median IS NOT NULL "
+            "       THEN ABS(override_score - median) END) AS avg_delta "
+            "FROM score_records GROUP BY criterion_id"
         ).fetchall()
-        out = []
-        for r in rows:
+        by_criterion = []
+        for r in criterion_rows:
             d = dict(r)
-            d["evaluation"] = json.loads(d["evaluation"] or "{}")
-            out.append(d)
-        return out
-
-
-def all_evaluation_rows():
-    """Every evaluation row joined to its assessment/user — the research export."""
-    with _conn() as c:
-        rows = c.execute(
-            "SELECT e.*, a.username, a.mode, a.id AS assessment_id, "
-            "       u.display_name, u.role, "
-            "       ann.label AS annotation_label, ann.notes AS annotation_notes, "
-            "       ann.reviewer AS annotation_reviewer, ann.updated_at AS annotation_updated_at "
-            "FROM evaluations e "
-            "JOIN assessments a ON a.id = e.assessment_id "
-            "LEFT JOIN users u ON u.username = a.username "
-            "LEFT JOIN annotations ann ON ann.assessment_id = e.assessment_id "
-            "  AND ann.task_title = e.task_title "
-            "ORDER BY a.username, e.timestamp, e.task_title"
-        ).fetchall()
-        return [dict(r) for r in rows]
-
-
-# ── Annotations (instructor verdicts on LLM grading) ──────────────────────────
-
-def set_annotation(assessment_id: str, task_title: str, label: str,
-                   notes: str, reviewer: str) -> bool:
-    if label not in ("correct", "partial", "missing", "needs_expert_review"):
-        return False
-    with _conn() as c:
-        c.execute(
-            "INSERT OR REPLACE INTO annotations "
-            "(assessment_id, task_title, label, notes, reviewer, updated_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (assessment_id, task_title or "", label, notes, reviewer, utcnow()),
-        )
-        c.commit()
-        return True
-
-
-def assessment_calibration_stats():
-    """Aggregate instructor-annotation labels against LLM product scores.
-
-    The annotation labels record an instructor's verdict on the LLM's grading
-    ('correct'/'partial'/'missing'/'needs_expert_review'), so the share labelled
-    'correct' is the LLM-vs-instructor agreement rate, and the average LLM score
-    per label is the miscalibration signal (a high average score on
-    'missing'-labelled rows means the LLM over-credits).
-    """
-    labels = ("correct", "partial", "missing", "needs_expert_review")
-    with _conn() as c:
-        total = c.execute("SELECT COUNT(*) FROM evaluations").fetchone()[0]
-
-        label_rows = c.execute(
-            "SELECT ann.label AS label, COUNT(*) AS n, "
-            "       AVG(CAST(NULLIF(e.product_score_percent,'') AS REAL)) AS avg_score "
-            "FROM annotations ann "
-            "JOIN evaluations e ON e.assessment_id = ann.assessment_id "
-            "  AND e.task_title = ann.task_title "
-            "GROUP BY ann.label"
-        ).fetchall()
-        by_label = {r["label"]: r["n"] for r in label_rows}
-        avg_scores = {r["label"]: (round(r["avg_score"], 1) if r["avg_score"] is not None else None)
-                      for r in label_rows}
-        annotated = sum(by_label.values())
-
-        task_rows = c.execute(
-            "SELECT e.task_title, e.report_type, COUNT(*) AS total, "
-            "  SUM(ann.label IS NOT NULL) AS annotated, "
-            "  SUM(ann.label = 'correct') AS correct, "
-            "  SUM(ann.label = 'partial') AS partial, "
-            "  SUM(ann.label = 'missing') AS missing, "
-            "  SUM(ann.label = 'needs_expert_review') AS needs_expert_review, "
-            "  AVG(CAST(NULLIF(e.product_score_percent,'') AS REAL)) AS avg_score "
-            "FROM evaluations e "
-            "LEFT JOIN annotations ann ON ann.assessment_id = e.assessment_id "
-            "  AND ann.task_title = e.task_title "
-            "GROUP BY e.task_title, e.report_type"
-        ).fetchall()
-        by_task = []
-        for r in task_rows:
-            t = dict(r)
-            t["avg_score"] = round(t["avg_score"], 1) if t["avg_score"] is not None else None
-            t["agreement_rate"] = (t["correct"] / t["annotated"]) if t["annotated"] else None
-            by_task.append(t)
-        # most-disagreeing tasks first; un-annotated tasks sink to the bottom
-        by_task.sort(key=lambda t: (t["agreement_rate"] is None,
-                                    t["agreement_rate"] if t["agreement_rate"] is not None else 0))
+            d["resolution_rate"] = (d["overridden"] / d["needs_review"]) if d["needs_review"] else None
+            d["avg_delta"] = round(d["avg_delta"], 2) if d["avg_delta"] is not None else None
+            by_criterion.append(d)
+        # worst-miscalibration first; criteria with no delta data sink to the bottom
+        by_criterion.sort(key=lambda d: (d["avg_delta"] is None, -(d["avg_delta"] or 0)))
 
         recent = [dict(r) for r in c.execute(
-            "SELECT a.username, e.task_title, ann.label AS annotation_label, "
-            "       e.product_score_percent, ann.reviewer AS annotation_reviewer, "
-            "       ann.updated_at AS annotation_updated_at "
-            "FROM annotations ann "
-            "JOIN evaluations e ON e.assessment_id = ann.assessment_id "
-            "  AND e.task_title = ann.task_title "
-            "JOIN assessments a ON a.id = ann.assessment_id "
-            "ORDER BY ann.updated_at DESC LIMIT 10"
+            "SELECT sr.criterion_id, sr.channel, sr.median, sr.override_score, "
+            "       sr.override_rationale, sr.override_ts, a.username, "
+            "       a.name AS assessment_name "
+            "FROM score_records sr JOIN assessments a ON a.id = sr.assessment_id "
+            "WHERE sr.override_ts != '' ORDER BY sr.override_ts DESC LIMIT 20"
         ).fetchall()]
 
     return {
         "total": total,
-        "annotated": annotated,
-        "labels": {l: by_label.get(l, 0) for l in labels},
-        "avg_score_by_label": {l: avg_scores.get(l) for l in labels},
-        "agreement_rate": (by_label.get("correct", 0) / annotated) if annotated else None,
-        "by_task": by_task,
+        "needs_review": needs_review,
+        "overridden": overridden,
+        "resolution_rate": (overridden / needs_review) if needs_review else None,
+        "avg_override_delta": round(avg_delta, 2) if avg_delta is not None else None,
+        "by_criterion": by_criterion,
         "recent": recent,
     }
 
@@ -952,134 +779,3 @@ def eval_cache_set(key: str, response: str):
         c.commit()
 
 
-# ── Novel-equivalent review queue (FR construct/exemplar matching) ────────────
-
-def log_novel_equivalent(prompt_id: str, key_point_id: str, construct: str,
-                         submission_excerpt: str, evidence_spans: list, justification: str,
-                         pool_id: str = None):
-    with _conn() as c:
-        c.execute(
-            "INSERT INTO novel_equivalent_review "
-            "(prompt_id, key_point_id, construct, submission_excerpt, evidence_spans, "
-            "justification, pool_id, status, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))",
-            (prompt_id, key_point_id, construct, submission_excerpt,
-             json.dumps(list(evidence_spans or [])), justification or "", pool_id),
-        )
-        c.commit()
-
-
-def _row_to_review(row):
-    d = dict(row)
-    try:
-        d["evidence_spans"] = json.loads(d["evidence_spans"])
-    except (TypeError, ValueError):
-        d["evidence_spans"] = []
-    return d
-
-
-def list_novel_equivalent_reviews(status: str = "pending"):
-    with _conn() as c:
-        rows = c.execute(
-            "SELECT * FROM novel_equivalent_review WHERE status=? ORDER BY created_at DESC",
-            (status,),
-        ).fetchall()
-        return [_row_to_review(r) for r in rows]
-
-
-def get_novel_equivalent_review(review_id: int):
-    with _conn() as c:
-        row = c.execute(
-            "SELECT * FROM novel_equivalent_review WHERE id=?", (review_id,)
-        ).fetchone()
-        return _row_to_review(row) if row else None
-
-
-def set_novel_equivalent_status(review_id: int, status: str) -> bool:
-    if status not in ("pending", "promoted", "dismissed"):
-        return False
-    with _conn() as c:
-        cur = c.execute(
-            "UPDATE novel_equivalent_review SET status=? WHERE id=?", (status, review_id)
-        )
-        c.commit()
-        return cur.rowcount > 0
-
-
-# ── FR match log / novel-equivalent reliability metric ────────────────────────
-
-def log_fr_match(prompt_id: str, key_point_id: str, construct: str, match_type: str):
-    """Record one accepted FR match (of either type) -- the denominator for the
-    novel-equivalent rate. Purely additive bookkeeping; never read at grading time.
-    """
-    if match_type not in ("exemplar", "novel_equivalent"):
-        return
-    with _conn() as c:
-        c.execute(
-            "INSERT INTO fr_match_log (prompt_id, key_point_id, construct, match_type, created_at) "
-            "VALUES (?, ?, ?, ?, datetime('now'))",
-            (prompt_id, key_point_id, construct, match_type),
-        )
-        c.commit()
-
-
-def get_fr_match_stats():
-    """Per-key-point reliability metric: total matches, novel-equivalent count/rate,
-    and promote/dismiss counts among reviewed novel-equivalent entries. A high rate
-    for a key point is a signal to expand that point's exemplars, not evidence the
-    grader is behaving unreliably.
-    """
-    with _conn() as c:
-        totals = c.execute(
-            "SELECT prompt_id, key_point_id, construct, "
-            "  COUNT(*) AS total_matches, "
-            "  SUM(CASE WHEN match_type='novel_equivalent' THEN 1 ELSE 0 END) AS novel_count "
-            "FROM fr_match_log GROUP BY prompt_id, key_point_id, construct"
-        ).fetchall()
-        reviews = c.execute(
-            "SELECT prompt_id, key_point_id, "
-            "  SUM(CASE WHEN status='promoted' THEN 1 ELSE 0 END) AS promoted, "
-            "  SUM(CASE WHEN status='dismissed' THEN 1 ELSE 0 END) AS dismissed, "
-            "  SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending "
-            "FROM novel_equivalent_review GROUP BY prompt_id, key_point_id"
-        ).fetchall()
-        review_by_kp = {(r["prompt_id"], r["key_point_id"]): dict(r) for r in reviews}
-
-        stats = []
-        for row in totals:
-            key = (row["prompt_id"], row["key_point_id"])
-            review = review_by_kp.pop(key, None)
-            total = row["total_matches"] or 0
-            novel = row["novel_count"] or 0
-            stats.append({
-                "prompt_id": row["prompt_id"],
-                "key_point_id": row["key_point_id"],
-                "construct": row["construct"],
-                "total_matches": total,
-                "novel_count": novel,
-                "novel_rate": (novel / total) if total else 0.0,
-                "promoted": (review or {}).get("promoted", 0) or 0,
-                "dismissed": (review or {}).get("dismissed", 0) or 0,
-                "pending_review": (review or {}).get("pending", 0) or 0,
-            })
-        # Key points with reviewed novel-equivalents but no match-log rows
-        # (pre-existing data) -- surface them with total=novel so the rate still
-        # reads as 100% rather than silently disappearing from the view.
-        for key, review in review_by_kp.items():
-            promoted = review.get("promoted", 0) or 0
-            dismissed = review.get("dismissed", 0) or 0
-            pending = review.get("pending", 0) or 0
-            novel = promoted + dismissed + pending
-            stats.append({
-                "prompt_id": key[0],
-                "key_point_id": key[1],
-                "construct": "",
-                "total_matches": novel,
-                "novel_count": novel,
-                "novel_rate": 1.0 if novel else 0.0,
-                "promoted": promoted,
-                "dismissed": dismissed,
-                "pending_review": pending,
-            })
-        stats.sort(key=lambda s: s["novel_rate"], reverse=True)
-        return stats
