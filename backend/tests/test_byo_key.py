@@ -158,6 +158,68 @@ def test_validate_key_endpoint(student_client, monkeypatch):
     assert BYO_KEY not in str(ok) + str(bad)
 
 
+# ── validate_api_key error reporting ──────────────────────────────────────────
+#
+# A bare status code makes a rejected *model* look identical to a rejected key,
+# which is the common failure on gateways whose model IDs are account-specific.
+
+def _http_error(code, body):
+    import io
+    import urllib.error
+    return urllib.error.HTTPError(
+        "https://gw.example/openai/chat/completions", code, "err", {},
+        io.BytesIO(body.encode()))
+
+
+def _validate_raising(monkeypatch, err):
+    from app.core import llm
+    def _raise(*a, **k):
+        raise err
+    monkeypatch.setattr(llm.urllib.request, "urlopen", _raise)
+    return llm.validate_api_key(
+        "TAMU AI", BYO_KEY, "protected.nonexistent", "https://gw.example/openai")
+
+
+def test_validate_key_surfaces_provider_message(monkeypatch):
+    err = _http_error(400, '{"error": {"message": "model protected.nonexistent not found"}}')
+    ok, msg = _validate_raising(monkeypatch, err)
+    assert ok is False
+    assert "Provider error (400)" in msg
+    assert "model protected.nonexistent not found" in msg
+
+
+def test_validate_key_surfaces_fastapi_detail_body(monkeypatch):
+    # TAMU's gateway reports errors as {"detail": "..."}, not OpenAI's
+    # {"error": {"message": ...}}.
+    err = _http_error(401, '{"detail": "Your session has expired or the token is invalid."}')
+    ok, msg = _validate_raising(monkeypatch, err)
+    assert ok is False
+    assert "Your session has expired" in msg
+
+
+def test_validate_key_auth_failure_keeps_headline(monkeypatch):
+    err = _http_error(401, '{"error": {"message": "token expired"}}')
+    ok, msg = _validate_raising(monkeypatch, err)
+    assert ok is False
+    assert msg.startswith("Invalid API key")
+    assert "token expired" in msg
+
+
+def test_validate_key_never_echoes_the_key(monkeypatch):
+    # Some providers quote the offending credential back in the error body.
+    err = _http_error(401, json_body := '{"error": {"message": "bad key: %s"}}' % BYO_KEY)
+    assert BYO_KEY in json_body  # the provider really did echo it
+    ok, msg = _validate_raising(monkeypatch, err)
+    assert ok is False
+    assert BYO_KEY not in msg
+    assert "[redacted]" in msg
+
+
+def test_validate_key_rate_limit_still_means_valid(monkeypatch):
+    ok, msg = _validate_raising(monkeypatch, _http_error(429, "slow down"))
+    assert ok is True and msg is None
+
+
 def test_validate_key_requires_auth(client):
     r = client.post("/api/providers/Claude/validate-key", json={"apiKey": "x"},
                     headers={"X-Requested-With": "fetch"})

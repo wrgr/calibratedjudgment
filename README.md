@@ -38,6 +38,13 @@ No API key? Bundled exemplar sessions still carry precomputed demo scores, so th
 - **Server keys** (default): add provider keys to `.env` (copy `.env.example`). They stay server-side and are never sent to the browser.
 - **Bring your own key**: any signed-in user can save a personal key under **Settings → Use your own API key**. It lives in that browser's localStorage only and rides on each of the user's grading requests as a header; the server uses it transiently and never stores or logs it. While set, it takes precedence over the server key.
 
+Providers: OpenAI, Claude, Gemini, Groq, Mistral, GitHub Models, TAMU AI, Ollama. **TAMU AI** is
+Texas A&M's OpenAI-compatible gateway (`https://chat-api.tamu.ai/openai`; key from chat.tamu.ai →
+Settings → API Keys, set as `TAMU_AI_API_KEY`). One key reaches OpenAI, Anthropic, and Gemini
+models under campus licensing, so institutional data-handling terms apply rather than each vendor's
+consumer terms — the reason to prefer it over a personal key when student essay text is involved.
+Its model IDs carry a `protected.` prefix and are listed live from the gateway.
+
 ## Architecture
 
 - `backend/` — FastAPI + SQLite. All LLM calls, grading, scoring, and the research database live here.

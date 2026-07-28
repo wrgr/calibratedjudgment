@@ -123,6 +123,21 @@ export default function Settings() {
   );
 }
 
+/** Eye / eye-with-slash. `off` renders the struck-through variant, shown while the
+ *  key is visible so the icon depicts the action the click performs (hide it). */
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <line x1="3" y1="3" x2="21" y2="21" />}
+    </svg>
+  );
+}
+
 /** Bring-your-own key: stored in THIS browser's localStorage only, sent with each
  *  of your grading requests as headers, used transiently by the server, never
  *  persisted or logged there. Takes precedence over the server key while set. */
@@ -134,6 +149,9 @@ function ByoKeyCard({ providers, defaultProvider }: {
   const [provider, setProvider] = useState(existing?.provider || defaultProvider || providers[0]?.name || '');
   const [model, setModel] = useState(existing?.model ?? '');
   const [apiKey, setApiKey] = useState(existing?.apiKey ?? '');
+  // Masked by default; revealing is opt-in per visit and never persisted, so a
+  // reload always returns to masked.
+  const [keyVisible, setKeyVisible] = useState(false);
   const [active, setActive] = useState(existing !== null);
   const [status, setStatus] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null);
 
@@ -149,6 +167,7 @@ function ByoKeyCard({ providers, defaultProvider }: {
   function clear() {
     clearByoKey();
     setApiKey('');
+    setKeyVisible(false);
     setActive(false);
     setStatus({ tone: 'info', text: 'Cleared — back to the server-configured provider (or keyword fallback).' });
   }
@@ -227,16 +246,31 @@ function ByoKeyCard({ providers, defaultProvider }: {
       <label className="mt-3 block text-xs font-semibold" htmlFor="byo-key">
         API key
       </label>
-      <input
-        id="byo-key"
-        type="password"
-        autoComplete="off"
-        className="mt-1 w-full rounded-sm border p-2 text-sm font-data"
-        style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
-        placeholder="sk-…"
-        value={apiKey}
-        onChange={(e) => setApiKey(e.target.value)}
-      />
+      <div className="relative mt-1">
+        <input
+          id="byo-key"
+          type={keyVisible ? 'text' : 'password'}
+          autoComplete="off"
+          // pr-9 keeps the key text clear of the reveal button.
+          className="w-full rounded-sm border p-2 pr-9 text-sm font-data"
+          style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+          placeholder="sk-…"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+        <button
+          type="button"
+          className="absolute inset-y-0 right-0 flex w-9 items-center justify-center"
+          style={{ color: 'var(--ink-muted)' }}
+          onClick={() => setKeyVisible((v) => !v)}
+          aria-controls="byo-key"
+          aria-pressed={keyVisible}
+          aria-label={keyVisible ? 'Hide API key' : 'Show API key'}
+          title={keyVisible ? 'Hide API key' : 'Show API key'}
+        >
+          <EyeIcon off={keyVisible} />
+        </button>
+      </div>
 
       {status && (
         <div className="mt-2 text-xs" role="status" style={{ color: toneColor[status.tone] }}>

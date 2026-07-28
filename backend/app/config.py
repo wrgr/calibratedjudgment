@@ -70,6 +70,17 @@ PROVIDERS = {
         "model": "openai/gpt-4o-mini",
         "api_key": _env("GITHUB_MODELS_TOKEN"),
     },
+    "TAMU AI": {
+        # Texas A&M's OpenAI-compatible AI gateway (chat.tamu.ai). One key fans
+        # out to OpenAI, Anthropic, and Gemini models behind campus SSO/licensing,
+        # so institutional data-handling rules apply instead of per-vendor terms.
+        # Get a key from chat.tamu.ai → Settings → API Keys.
+        "base_url": os.environ.get("TAMU_AI_BASE_URL", "https://chat-api.tamu.ai/openai"),
+        "model": "protected.gpt-4o",
+        # TAMU_CHAT_API_KEY is the name TAMU's own client library uses; accepted
+        # as an alias so an existing campus .env works unchanged.
+        "api_key": _env("TAMU_AI_API_KEY") or _env("TAMU_CHAT_API_KEY"),
+    },
     "Ollama": {
         "base_url": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
         "model": "llama3.2",

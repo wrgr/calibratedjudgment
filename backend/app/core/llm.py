@@ -21,8 +21,25 @@ logger = logging.getLogger(__name__)
 
 _ANTHROPIC_HOST = "api.anthropic.com"
 
+# Identify this client on stdlib HTTP calls. urllib otherwise sends
+# "Python-urllib/3.x", which some WAFs in front of provider gateways reject
+# outright -- TAMU's Cloudflare returns 403 "error code: 1010" to that UA, so
+# the request never reaches the API and any key looks invalid. The SDK paths
+# (openai/anthropic via httpx) send their own UA and were never affected, which
+# is why grading could work while the stdlib "Test key" check failed.
+# This is a truthful identifier, not browser impersonation.
+_USER_AGENT = "assessment-platform/0.1 (+https://github.com/ohburks/essay-grading)"
+
 # Extra attempts after the first HTTP 429 before giving up.
 _RATE_LIMIT_MAX_RETRIES = 2
+
+# SDK/transport exception class names that mean "the request never completed".
+# Matched by name so this module keeps its no-import-at-module-scope property
+# for the optional openai/anthropic/httpx packages.
+_TRANSPORT_ERROR_NAMES = frozenset({
+    "APIConnectionError", "APITimeoutError",          # openai
+    "ConnectError", "ConnectTimeout", "ReadTimeout", "ReadError", "PoolTimeout",  # httpx
+})
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DETERMINISM SETTINGS FOR EVALUATIVE / SCORING LLM CALLS
@@ -112,6 +129,9 @@ def _http_error_detail(http_error):
             return err
         if isinstance(data.get("message"), str):
             return data["message"]
+        # FastAPI-style gateways (TAMU's among them) return {"detail": "..."}.
+        if isinstance(data.get("detail"), str):
+            return data["detail"]
     return None
 
 
@@ -147,11 +167,30 @@ _PROVIDER_MODELS = {
     "Mistral": ["mistral-large-latest", "mistral-small-latest", "mistral-nemo"],
     # GitHub Models — publisher/model IDs. gpt-4o-mini first: JSON mode + best free-tier limits.
     "GitHub Models": ["openai/gpt-4o-mini", "openai/gpt-4o", "meta/Llama-3.3-70B-Instruct", "mistral-ai/Mistral-Nemo"],
+    # TAMU AI gateway — model IDs carry a `protected.` prefix denoting the
+    # campus-licensed (institutional-data-approved) deployment of each model.
+    # Fallback list only: get_available_models queries the gateway live, since
+    # TAMU adds and retires models without notice.
+    "TAMU AI": ["protected.gpt-4o", "protected.gpt-4.1", "protected.gpt-5",
+                "protected.Claude Opus 4.1", "protected.Claude 3.5 Sonnet",
+                "protected.gemini-2.0-flash"],
 }
 
 
 def llm_is_available(api_key):
     return bool(api_key) and not api_key.startswith("your-")
+
+
+def _redact(text, secret):
+    """Strip `secret` out of provider-supplied text.
+
+    Some providers quote the offending credential back in their error body. The
+    validate-key endpoint contracts that a browser-supplied key is never echoed
+    back, so scrub it before the message crosses that boundary.
+    """
+    if not text or not secret or len(secret) < 8:
+        return text
+    return text.replace(secret, "[redacted]")
 
 
 def validate_api_key(provider_name, api_key, model, base_url):
@@ -191,6 +230,7 @@ def validate_api_key(provider_name, api_key, model, base_url):
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + api_key,
+        "User-Agent": _USER_AGENT,
     }
     body = json.dumps({
         "model": model, "max_tokens": 1,
@@ -204,11 +244,15 @@ def validate_api_key(provider_name, api_key, model, base_url):
         with urllib.request.urlopen(req, timeout=10):
             return True, None
     except urllib.error.HTTPError as e:
-        if e.code in (401, 403):
-            return False, "Invalid API key"
         if e.code == 429:
             return True, None  # rate-limited → key is valid
-        return False, f"Provider error ({e.code})"
+        # Append the provider's own message. Without it every non-auth failure
+        # collapses to a bare status code, so a rejected *model* (HTTP 400 on
+        # gateways like TAMU, whose model IDs are account-specific) is
+        # indistinguishable from a rejected key.
+        detail = _redact(_http_error_detail(e), api_key)
+        headline = "Invalid API key" if e.code in (401, 403) else f"Provider error ({e.code})"
+        return False, f"{headline}: {detail}" if detail else headline
     except Exception:
         return False, "Cannot connect to provider"
 
@@ -233,7 +277,30 @@ def get_available_models(provider_name, provider_cfg):
                 return [m["name"] for m in data.get("models", [])]
         except Exception:
             return []
+    if provider_name == "TAMU AI":
+        # The gateway's catalogue changes as TAMU licenses/retires models, so
+        # prefer the live list and fall back to the curated one on any failure.
+        return _list_openai_models(provider_cfg) or _PROVIDER_MODELS["TAMU AI"]
     return _PROVIDER_MODELS.get(provider_name, [])
+
+
+def _list_openai_models(provider_cfg):
+    """GET /models on an OpenAI-compatible endpoint. Returns [] on any failure."""
+    api_key = provider_cfg.get("api_key") or ""
+    if not llm_is_available(api_key):
+        return []
+    try:
+        req = urllib.request.Request(
+            provider_cfg["base_url"].rstrip("/") + "/models",
+            headers={"Authorization": "Bearer " + api_key, "User-Agent": _USER_AGENT},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        return [m["id"] for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
+    except Exception as e:
+        logger.debug("[llm] live model listing failed for %s: %s", provider_cfg.get("base_url"), e)
+        return []
 
 
 def _fix_unescaped_quotes(s):
@@ -338,7 +405,7 @@ def _raw_chat(model, api_key, base_url, max_tokens, system, user, think=None, js
     msgs.append({"role": "user", "content": user})
 
     base = base_url.rstrip("/")
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "User-Agent": _USER_AGENT}
     is_ollama = not api_key or api_key.lower() == "ollama"
     if not is_ollama:
         headers["Authorization"] = "Bearer " + api_key
@@ -389,7 +456,8 @@ def _raw_chat(model, api_key, base_url, max_tokens, system, user, think=None, js
         body["options"]["seed"] = seed
     payload = json.dumps(body).encode()
     req = urllib.request.Request(host + "/api/chat", data=payload,
-                                 headers={"Content-Type": "application/json"}, method="POST")
+                                 headers={"Content-Type": "application/json",
+                                          "User-Agent": _USER_AGENT}, method="POST")
     with urllib.request.urlopen(req, timeout=120) as resp:
         return json.loads(resp.read())["message"]["content"] or ""
 
@@ -407,6 +475,65 @@ def _cap_max_tokens(base_url, max_tokens):
         if host in (base_url or ""):
             return min(max_tokens, cap)
     return max_tokens
+
+
+def _sse_text(raw):
+    """Concatenate assistant text out of an OpenAI-style SSE stream body.
+
+    Returns None when `raw` doesn't look like SSE, so the caller can fall
+    through to a clearer error rather than silently yielding "".
+    """
+    chunks, saw_data = [], False
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line.startswith("data:"):
+            continue
+        saw_data = True
+        payload = line[5:].strip()
+        if payload == "[DONE]":
+            continue
+        try:
+            obj = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        for choice in obj.get("choices") or []:
+            # Streaming chunks carry `delta`; some gateways send whole `message`s.
+            part = (choice.get("delta") or {}).get("content") or \
+                   (choice.get("message") or {}).get("content")
+            if part:
+                chunks.append(part)
+    return "".join(chunks) if saw_data else None
+
+
+def _openai_response_text(response):
+    """Pull the assistant's text out of an openai-SDK response.
+
+    The SDK hands back the raw body as a plain `str` instead of a parsed object
+    whenever the provider's Content-Type doesn't end in `json` AND the body
+    isn't parseable as a single JSON document -- an SSE stream is the common
+    case. Without this, that path died on `'str' object has no attribute
+    'choices'`, which the generic handler then mislabelled as a network error.
+    """
+    if not isinstance(response, str):
+        return response.choices[0].message.content or ""
+
+    text = _sse_text(response)
+    if text is not None:
+        logger.debug("[llm] provider returned an SSE body; decoded %d chars", len(text))
+        return text
+    try:
+        obj = json.loads(response)
+    except json.JSONDecodeError:
+        raise LLMError(
+            "The provider returned a body this client could not parse (not JSON, not an "
+            f"SSE stream). First 200 chars: {response[:200]!r}"
+        ) from None
+    try:
+        return obj["choices"][0]["message"]["content"] or ""
+    except (KeyError, IndexError, TypeError):
+        raise LLMError(
+            f"The provider returned an unexpected JSON shape: {str(obj)[:200]}"
+        ) from None
 
 
 def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, json_mode=False,
@@ -461,11 +588,12 @@ def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, js
                 elif seed is not None:
                     logger.debug("[llm] seed=%s requested but not applied -- provider at %s has no known seed support",
                                 seed, base_url)
-                response = client.chat.completions.create(model=model, max_tokens=max_tokens, messages=msgs, **extra)
+                response = client.chat.completions.create(model=model, max_tokens=max_tokens, messages=msgs,
+                                                         stream=False, **extra)
                 if temperature is not None or seed is not None:
                     logger.debug("[llm] evaluative call: temperature=%s seed=%s (applied=%s) system_fingerprint=%s",
                                 temperature, seed, seed_applied, getattr(response, "system_fingerprint", None))
-                return response.choices[0].message.content or ""
+                return _openai_response_text(response)
             except ImportError:
                 return _raw_chat(model, api_key, base_url, max_tokens, system, user, think=think, json_mode=json_mode,
                                  temperature=temperature, seed=seed)
@@ -491,8 +619,23 @@ def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, js
             if code == 429:
                 raise LLMRateLimitError(_describe_http_status(code)) from e
             raise LLMError(_describe_http_status(code)) from e
-        raise ConnectionError(
-            "Cannot reach the LLM API. Check your API key, base URL, and network."
+        # The SDKs wrap transport failures in their own classes, which subclass
+        # neither URLError nor TimeoutError. Match by name (rather than importing
+        # openai/httpx here) so these stay retryable ConnectionErrors.
+        if type(e).__name__ in _TRANSPORT_ERROR_NAMES:
+            raise ConnectionError(
+                "Cannot reach the LLM API — network error or timeout. "
+                f"Check your base URL and connection. ({type(e).__name__}: {e})"
+            ) from e
+        # Otherwise: not a network failure and not an HTTP status -- almost always
+        # a bug or a response shape this client doesn't handle. Naming the
+        # exception beats blaming the network, which sends debugging in entirely
+        # the wrong direction (the request may well have succeeded). Raising
+        # LLMError rather than ConnectionError also stops the retry ladder from
+        # burning 15s per call on something a retry cannot fix.
+        logger.exception("[llm] unexpected failure calling %s", base_url)
+        raise LLMError(
+            f"Unexpected LLM client failure ({type(e).__name__}): {e}"
         ) from e
 
 

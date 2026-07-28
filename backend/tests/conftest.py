@@ -17,7 +17,8 @@ os.environ["ASSESSMENT_DB_PATH"] = str(Path(_tmpdir) / "test.db")
 # Tests must never depend on ambient provider credentials — force the
 # keyword-fallback path unless a test explicitly monkeypatches the bridge.
 for _var in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
-             "GROQ_API_KEY", "MISTRAL_API_KEY", "GITHUB_MODELS_TOKEN"):
+             "GROQ_API_KEY", "MISTRAL_API_KEY", "GITHUB_MODELS_TOKEN",
+             "TAMU_AI_API_KEY", "TAMU_CHAT_API_KEY"):
     os.environ.pop(_var, None)
 os.environ["OLLAMA_BASE_URL"] = "http://127.0.0.1:9"  # unroutable — Ollama absent
 
