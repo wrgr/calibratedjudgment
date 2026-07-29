@@ -10,6 +10,7 @@ export interface User {
   preferredProvider: string;
   preferredModel: string;
   gradingStyle: string;
+  styleIntensity: 'subtle' | 'moderate' | 'strong';
 }
 
 interface AuthState {

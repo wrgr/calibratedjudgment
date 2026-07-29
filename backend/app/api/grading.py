@@ -42,6 +42,7 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
     segments = layerb.segment_trace(trace)
     total = n_grading + len(segments)
     grading_style = user.get("grading_style", "")
+    style_intensity = user.get("style_intensity") or molding.DEFAULT_INTENSITY
 
     # Re-grade replaces prior records; the run stamps the current rubric version.
     db.delete_score_records(assessment_id)
@@ -52,7 +53,7 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
         try:
             style_notes = molding.get_or_mold_notes(
                 llm_json, content_id=a["content_id"], version=rubric_item["version"],
-                rubric=rubric, grading_style=grading_style)
+                rubric=rubric, grading_style=grading_style, intensity=style_intensity)
 
             def on_result(rec):
                 db.upsert_score_record(assessment_id, rec)

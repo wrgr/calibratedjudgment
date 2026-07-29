@@ -98,7 +98,8 @@ def init_db():
                 created_at         TEXT NOT NULL DEFAULT ''
             )
         """)
-        _widen(c, "users", {"grading_style": "TEXT NOT NULL DEFAULT ''"})
+        _widen(c, "users", {"grading_style": "TEXT NOT NULL DEFAULT ''",
+                            "style_intensity": "TEXT NOT NULL DEFAULT 'moderate'"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS auth_sessions (
                 token_hash TEXT PRIMARY KEY,
@@ -334,6 +335,12 @@ def set_model_pref(username: str, provider: str, model: str):
 def set_grading_style(username: str, style: str):
     with _conn() as c:
         c.execute("UPDATE users SET grading_style=? WHERE username=?", (style or "", username))
+        c.commit()
+
+
+def set_style_intensity(username: str, intensity: str):
+    with _conn() as c:
+        c.execute("UPDATE users SET style_intensity=? WHERE username=?", (intensity, username))
         c.commit()
 
 

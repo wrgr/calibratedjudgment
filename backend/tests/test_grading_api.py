@@ -82,11 +82,13 @@ class FakeLLM:
         self.prompts = []
         self.mold_calls = 0
         self.mold_prompts = []
+        self.mold_systems = []
 
     def __call__(self, system, prompt):
         if "grading-style preference apply consistently" in system:
             self.mold_calls += 1
             self.mold_prompts.append(prompt)
+            self.mold_systems.append(system)
             return {"notes": [
                 {"criterionId": "W1d-1", "note": "Lean into an informal register; do not dock points for colloquial diction."},
                 {"criterionId": "W1d-2", "note": "A passionate voice is fine as long as reasoning underlies it."},
@@ -297,3 +299,53 @@ def test_grading_style_mold_cached_across_regrade(admin_client, monkeypatch):
     # Whether the LLM's *score* actually moves in response to a stated grading
     # style is a model-compliance question a hardcoded FakeLLM can't meaningfully
     # test — that remains a manual check against a live provider (see plan).
+
+
+def test_style_intensity_prefs_round_trip(admin_client):
+    r = admin_client.put("/api/auth/prefs", json={"style_intensity": "strong"},
+                         headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+    assert r.json()["styleIntensity"] == "strong"
+
+    r = admin_client.get("/api/auth/me")
+    assert r.json()["styleIntensity"] == "strong"
+
+    # Reset to the default for isolation from any later tests in this module.
+    admin_client.put("/api/auth/prefs", json={"style_intensity": "moderate"},
+                     headers={"X-Requested-With": "fetch"})
+
+
+def test_style_intensity_rejects_invalid_value(admin_client):
+    r = admin_client.put("/api/auth/prefs", json={"style_intensity": "extreme"},
+                         headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 422
+
+
+def test_style_intensity_reaches_molding_prompt(admin_client, monkeypatch):
+    style_text = "Intensity-test style: value voice and clarity over rigid formal structure."
+    admin_client.put("/api/auth/prefs",
+                     json={"grading_style": style_text, "style_intensity": "strong"},
+                     headers={"X-Requested-With": "fetch"})
+
+    fake = FakeLLM()
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
+    r = admin_client.post("/api/assessments/exemplar-jordan/grade",
+                          headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+    job_id = r.json()["jobId"]
+
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        job = admin_client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] != "running":
+            break
+        time.sleep(0.2)
+    assert job["status"] == "done", job
+
+    assert fake.mold_calls == 1
+    from app.services.grading import molding
+    assert fake.mold_systems[0] == molding.build_mold_system("strong")
+
+    # Reset to the default for isolation from any later tests in this module.
+    admin_client.put("/api/auth/prefs", json={"style_intensity": "moderate"},
+                     headers={"X-Requested-With": "fetch"})

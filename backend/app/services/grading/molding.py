@@ -24,6 +24,24 @@ from .prompts import _anchors_block
 
 MAX_NOTE_CHARS = 240  # ~40 words — a note can't become a disguised anchor rewrite
 
+DEFAULT_INTENSITY = "moderate"
+
+# How assertively the reconciliation note should lean into the stated style on
+# a genuinely borderline call. This is the ONLY thing intensity changes — the
+# eligible-criteria allowlist and validate_mold's anti-rewrite/length checks
+# below are absolute at every intensity level, by explicit design choice.
+_INTENSITY_CLAUSE = {
+    "subtle": "Mention the style only where it is clearly and directly relevant; "
+             "when a call is close, lean toward the anchors' literal language.",
+    "moderate": "Where the essay is a genuine borderline case between two anchor "
+               "levels, let the stated style tip the balance.",
+    "strong": "Actively favor the interpretation that aligns with the stated style "
+             "whenever the anchors reasonably permit it; treat borderline calls "
+             "generously toward the style, not just as a light tiebreaker.",
+}
+
+VALID_INTENSITIES = frozenset(_INTENSITY_CLAUSE)
+
 
 def eligible_criteria(rubric: dict) -> list:
     return [c for c in rubric.get("criteria", []) if c.get("styleEligible")]
@@ -33,7 +51,8 @@ def _style_hash(grading_style: str) -> str:
     return hashlib.sha256((grading_style or "").strip().encode()).hexdigest()[:24]
 
 
-def build_mold_system() -> str:
+def build_mold_system(intensity: str = DEFAULT_INTENSITY) -> str:
+    clause = _INTENSITY_CLAUSE.get(intensity, _INTENSITY_CLAUSE[DEFAULT_INTENSITY])
     return (
         "You help an instructor's stated grading-style preference apply consistently "
         "to a fixed assessment rubric. For EACH criterion given, write ONE short "
@@ -46,7 +65,8 @@ def build_mold_system() -> str:
         "incoherent effort must still score at the floor regardless of style.\n"
         "3. Only address the criteria given to you. Never invent a note for a criterion "
         "not listed.\n"
-        "4. Output only the JSON object.\n\n"
+        "4. Output only the JSON object.\n"
+        f"5. {clause}\n\n"
         "OUTPUT — a single JSON object, exactly this shape:\n"
         '{"notes": [{"criterionId": "<id from the list given>", "note": "<short note>"}]}'
     )
@@ -69,7 +89,8 @@ CRITERIA ELIGIBLE FOR A STYLE RECONCILIATION NOTE (these are the ONLY criteria y
 For each criterion above, write one short reconciliation note."""
 
 
-def mold_notes(llm_json, rubric: dict, grading_style: str) -> dict:
+def mold_notes(llm_json, rubric: dict, grading_style: str,
+               intensity: str = DEFAULT_INTENSITY) -> dict:
     """One LLM call (one retry on transient failure). Returns {criterionId: note},
     defense-in-depth filtered to the eligible-id set and length-capped — this
     filtering happens regardless of what validate_mold later decides, so a
@@ -80,7 +101,7 @@ def mold_notes(llm_json, rubric: dict, grading_style: str) -> dict:
         return {}
 
     eligible_ids = {c["criterionId"] for c in eligible}
-    system = build_mold_system()
+    system = build_mold_system(intensity)
     prompt = build_mold_prompt(eligible, style)
     try:
         raw = llm_json(system, prompt)
@@ -125,24 +146,26 @@ def validate_mold(notes: dict, eligible: list) -> bool:
     return True
 
 
-def get_or_mold_notes(llm_json, *, content_id: str, version: str,
-                      rubric: dict, grading_style: str) -> dict:
+def get_or_mold_notes(llm_json, *, content_id: str, version: str, rubric: dict,
+                      grading_style: str, intensity: str = DEFAULT_INTENSITY) -> dict:
     """Cache-checked entry point used by api/grading.py. Always molds from the
     pristine rubric passed in (never from a cached mold), keyed on the current
-    full style text — so editing the style by one character is a cache miss
-    and a fresh mold, never a mold-of-a-mold."""
+    full style text AND intensity — so editing either is a cache miss and a
+    fresh mold, never a mold-of-a-mold."""
     style = (grading_style or "").strip()
     eligible = eligible_criteria(rubric)
     if not style or not eligible:
         return {}
+    if intensity not in VALID_INTENSITIES:
+        intensity = DEFAULT_INTENSITY
 
     style_hash = _style_hash(style)
-    cache_key = f"{content_id}:{version}:{style_hash}"
+    cache_key = f"{content_id}:{version}:{style_hash}:{intensity}"
     cached = db.get_style_mold(cache_key)
     if cached is not None:
         return cached
 
-    notes = mold_notes(llm_json, rubric, style)
+    notes = mold_notes(llm_json, rubric, style, intensity)
     if not validate_mold(notes, eligible):
         notes = {}  # fail open: no style effect this run, not a crash
 

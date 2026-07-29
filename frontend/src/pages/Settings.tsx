@@ -125,18 +125,34 @@ export default function Settings() {
   );
 }
 
-/** Instructor-editable grading-style blurb. Folded directly into the grading
- *  prompt (services/grading/prompts.py _guidance_block) as an imperative
- *  instruction the model must account for — there is no separate score
- *  adjustment; the model's own per-criterion styleApplied explanation (shown
- *  in the evidence trail) is how you check it actually engaged with this. */
+const INTENSITY_LEVELS: Array<'subtle' | 'moderate' | 'strong'> = ['subtle', 'moderate', 'strong'];
+const INTENSITY_LABELS: Record<string, string> = {
+  subtle: 'Subtle', moderate: 'Moderate', strong: 'Strong',
+};
+const INTENSITY_HELP: Record<string, string> = {
+  subtle: "Only nudges borderline calls; leans toward the rubric's literal anchors otherwise.",
+  moderate: 'Tips genuinely borderline calls toward the stated style (the default).',
+  strong: 'Favors the stated style whenever the anchors reasonably permit it.',
+};
+
+/** Instructor-editable grading-style blurb. Folded (via a short, vetted
+ *  per-criterion reconciliation note — services/grading/molding.py) into the
+ *  grading prompt only for criteria the rubric marks style-eligible; there is
+ *  no separate score adjustment. The intensity slider only changes how
+ *  assertively that note is worded — it never widens which criteria are
+ *  eligible, and never loosens the anti-rewrite safeguards on the note
+ *  itself. The model's own per-criterion styleApplied explanation (shown in
+ *  the evidence trail) is how you check it actually engaged with this. */
 function GradingStyleCard() {
   const { user, refresh } = useAuth();
   const [style, setStyle] = useState(user?.gradingStyle ?? '');
+  const [intensity, setIntensity] = useState<'subtle' | 'moderate' | 'strong'>(
+    user?.styleIntensity ?? 'moderate',
+  );
   const [saved, setSaved] = useState(false);
 
   async function save() {
-    await api.put<User>('/api/auth/prefs', { grading_style: style });
+    await api.put<User>('/api/auth/prefs', { grading_style: style, style_intensity: intensity });
     await refresh();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -158,6 +174,33 @@ function GradingStyleCard() {
         onChange={(e) => setStyle(e.target.value)}
         aria-label="Grading style"
       />
+
+      <label className="mt-4 block text-xs font-semibold" htmlFor="style-intensity">
+        Intensity
+      </label>
+      <input
+        id="style-intensity"
+        type="range"
+        min={0}
+        max={2}
+        step={1}
+        className="mt-2 w-full"
+        value={INTENSITY_LEVELS.indexOf(intensity)}
+        onChange={(e) => setIntensity(INTENSITY_LEVELS[Number(e.target.value)])}
+        aria-label="Grading style intensity"
+      />
+      <div className="mt-1 flex justify-between text-xs" style={{ color: 'var(--ink-muted)' }}>
+        {INTENSITY_LEVELS.map((lvl) => (
+          <span key={lvl} style={lvl === intensity ? { fontWeight: 600, color: 'var(--ink-primary)' } : undefined}>
+            {INTENSITY_LABELS[lvl]}
+          </span>
+        ))}
+      </div>
+      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+        {INTENSITY_HELP[intensity]} Applies only to the criteria eligible for style adjustment
+        (formal style, tone, and grammar/mechanics) — never to what's argued.
+      </p>
+
       <button
         onClick={() => void save()}
         className="mt-3 rounded-sm px-4 py-2 text-sm font-semibold text-white"

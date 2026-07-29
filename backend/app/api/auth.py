@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from ..core import security
 from ..db import database as db
+from ..services.grading.molding import VALID_INTENSITIES
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -19,6 +20,7 @@ class PrefsRequest(BaseModel):
     preferred_provider: str | None = None
     preferred_model: str | None = None
     grading_style: str | None = None
+    style_intensity: str | None = None
 
 
 def _public_user(user: dict) -> dict:
@@ -30,6 +32,7 @@ def _public_user(user: dict) -> dict:
         "preferredProvider": user["preferred_provider"],
         "preferredModel": user["preferred_model"],
         "gradingStyle": user["grading_style"],
+        "styleIntensity": user["style_intensity"],
     }
 
 
@@ -87,4 +90,8 @@ def update_prefs(body: PrefsRequest, user: dict = Depends(security.require_user)
         )
     if body.grading_style is not None:
         db.set_grading_style(user["username"], security.sanitize_str(body.grading_style, 2000))
+    if body.style_intensity is not None:
+        if body.style_intensity not in VALID_INTENSITIES:
+            raise HTTPException(status_code=422, detail="Invalid style_intensity.")
+        db.set_style_intensity(user["username"], body.style_intensity)
     return _public_user(db.get_user(user["username"]))

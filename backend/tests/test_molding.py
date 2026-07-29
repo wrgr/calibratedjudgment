@@ -157,3 +157,48 @@ def test_get_or_mold_notes_caches_validation_failure_as_empty():
                                         rubric=rubric, grading_style="be lenient")
     assert result2 == {}
     assert calls["n"] == 1
+
+
+# ---- Attempt 6: intensity slider ----
+
+def test_build_mold_system_wording_differs_by_intensity():
+    subtle = molding.build_mold_system("subtle")
+    moderate = molding.build_mold_system("moderate")
+    strong = molding.build_mold_system("strong")
+    assert subtle != moderate != strong
+    assert "lean toward the anchors' literal language" in subtle
+    assert "let the stated style tip the balance" in moderate
+    assert "Actively favor the interpretation" in strong
+
+
+def test_build_mold_system_unknown_intensity_falls_back_to_default():
+    assert molding.build_mold_system("nonsense") == molding.build_mold_system(molding.DEFAULT_INTENSITY)
+
+
+def test_get_or_mold_notes_cache_key_sensitive_to_intensity():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def counting_llm(system, prompt):
+        calls["n"] += 1
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    kwargs = dict(content_id="test-rubric-intensity", version="1.0", rubric=rubric,
+                 grading_style="be lenient")
+    molding.get_or_mold_notes(counting_llm, intensity="subtle", **kwargs)
+    molding.get_or_mold_notes(counting_llm, intensity="subtle", **kwargs)  # cache hit
+    molding.get_or_mold_notes(counting_llm, intensity="strong", **kwargs)  # different intensity -> fresh mold
+    assert calls["n"] == 2
+
+
+def test_get_or_mold_notes_defaults_to_moderate_intensity():
+    rubric = _rubric()
+    captured = {}
+
+    def capturing_llm(system, prompt):
+        captured["system"] = system
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    molding.get_or_mold_notes(capturing_llm, content_id="test-rubric-default", version="1.0",
+                              rubric=rubric, grading_style="be lenient")
+    assert captured["system"] == molding.build_mold_system("moderate")
