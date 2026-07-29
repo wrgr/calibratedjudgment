@@ -33,7 +33,11 @@ export function LayerBPanel({ layerB }: { layerB: LayerBResult | null | undefine
         </div>
         <div className="mt-3 rounded p-3 text-sm" style={{ background: 'var(--page)' }}>
           Interpretive label (Hou et al. 2025): <b>{b.interpretiveLabel}</b>{' '}
-          <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>— a hypothesis to check against your knowledge of the student, not a verdict.</span>
+          {b.interpretiveLabel === 'undetermined' ? (
+            <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>— no student-authored AI interaction could be coded for this session; this is not a reliance judgment.</span>
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>— a hypothesis to check against your knowledge of the student, not a verdict.</span>
+          )}
         </div>
       </div>
 

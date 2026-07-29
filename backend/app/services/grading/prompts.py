@@ -19,7 +19,8 @@ GRADING_OUTPUT_SHAPE = """OUTPUT — a single JSON object, exactly this shape:
   ],
   "anchorMatched": "<the level descriptor text that best matches the evidence>",
   "score": <integer 0-5, or the string "no-evidence" if the source contains no evidence bearing on this criterion>,
-  "selfConfidence": "low" | "med" | "high"
+  "selfConfidence": "low" | "med" | "high",
+  "styleApplied": "<one short sentence: how the teacher's stated grading style (if any) affected this specific score, or state plainly that none was provided / it wasn't applicable to this criterion's evidence>"
 }"""
 
 SHARED_RULES = """Rules (non-negotiable):
@@ -28,7 +29,8 @@ SHARED_RULES = """Rules (non-negotiable):
 3. Every quote must appear VERBATIM in the source. Keep each quote under ~40 words.
 4. If the source contains no evidence bearing on this criterion, output "no-evidence" as the score. Never guess.
 5. Length is not quality: do not reward verbosity.
-6. Output only the JSON object."""
+6. Output only the JSON object.
+7. If a teacher grading style is given, state in styleApplied exactly how it affected this score; if none was given or it made no difference, say so explicitly rather than omitting the field."""
 
 
 def _anchors_block(criterion: dict) -> str:
@@ -36,7 +38,7 @@ def _anchors_block(criterion: dict) -> str:
                      for level, desc in criterion.get("anchors", {}).items())
 
 
-def _guidance_block(criterion: dict, rubric: dict) -> str:
+def _guidance_block(criterion: dict, rubric: dict, style_note: str = "") -> str:
     parts = []
     ag = (rubric.get("assignmentGuidance") or "").strip()
     if ag:
@@ -44,6 +46,9 @@ def _guidance_block(criterion: dict, rubric: dict) -> str:
     tg = (criterion.get("teacherGuidance") or "").strip()
     if tg:
         parts.append(f"CRITERION GUIDANCE FROM THE TEACHER (apply it):\n{tg}")
+    note = (style_note or "").strip()
+    if note:
+        parts.append(f"TEACHER'S STYLE NOTE FOR THIS CRITERION (apply it):\n{note}")
     return "\n" + "\n\n".join(parts) + "\n" if parts else ""
 
 
@@ -55,12 +60,12 @@ def build_product_system() -> str:
             f"\n\n{SHARED_RULES}\n\n{GRADING_OUTPUT_SHAPE}")
 
 
-def build_product_prompt(criterion: dict, essay: str, rubric: dict) -> str:
+def build_product_prompt(criterion: dict, essay: str, rubric: dict, style_note: str = "") -> str:
     return f"""CRITERION {criterion['criterionId']} ({criterion['standard']}): {criterion['statement']}
 
 ANCHORED LEVELS (0-5):
 {_anchors_block(criterion)}
-{_guidance_block(criterion, rubric)}
+{_guidance_block(criterion, rubric, style_note)}
 STUDENT ESSAY:
 <<<
 {essay}
@@ -85,12 +90,12 @@ def build_trace_system() -> str:
             "the student ORIGINATING ideas, evaluating, revising, or reasoning in "
             "their own words.\n\n"
             f"{SHARED_RULES}\n"
-            "7. Each evidence quote must come from a turn labeled speaker=\"student\", "
+            "8. Each evidence quote must come from a turn labeled speaker=\"student\", "
             "and you must report that turnId.\n\n"
             f"{GRADING_OUTPUT_SHAPE}")
 
 
-def build_trace_prompt(criterion: dict, trace: dict, rubric: dict) -> str:
+def build_trace_prompt(criterion: dict, trace: dict, rubric: dict, style_note: str = "") -> str:
     dialogue = "\n\n".join(
         f"[turn {t['turnId']} | {t['speaker'].upper()}]\n{t['text']}"
         for t in trace.get("turns", [])
@@ -99,7 +104,7 @@ def build_trace_prompt(criterion: dict, trace: dict, rubric: dict) -> str:
 
 ANCHORED LEVELS (0-5):
 {_anchors_block(criterion)}
-{_guidance_block(criterion, rubric)}
+{_guidance_block(criterion, rubric, style_note)}
 DIALOGUE TRACE (student ↔ AI assistant during the writing task):
 <<<
 {dialogue}

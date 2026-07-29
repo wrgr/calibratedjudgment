@@ -16,7 +16,7 @@ def median(nums):
 
 
 def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
-                     passes: list, rubric_version: str) -> dict:
+                     passes: list, rubric_version: str, style_hash: str = "") -> dict:
     """passes: list of dicts {score: int|'no-evidence', selfConfidence, evidence, anchorMatched}.
 
     Returns a score record dict (snake_case keys, matching the score_records table).
@@ -33,12 +33,18 @@ def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
     # Evidence from the pass whose score is closest to the median (representative pass).
     evidence = []
     anchor_matched = None
+    style_applied = None
     if not no_evidence and med is not None:
         scored = [p for p in passes if isinstance(p["score"], (int, float))]
         rep = min(scored, key=lambda p: abs(p["score"] - med), default=None)
         if rep:
             evidence = rep.get("evidence", [])
             anchor_matched = rep.get("anchorMatched")
+            style_applied = rep.get("styleApplied")
+    elif passes:
+        # No representative pass to speak of (no-evidence) — still surface the
+        # model's own explanation for why the style didn't apply, if it gave one.
+        style_applied = passes[0].get("styleApplied")
 
     distinct_evidence = len({e["quote"].strip().lower() for e in evidence})
 
@@ -74,6 +80,8 @@ def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
         "confidence": confidence,
         "evidence": evidence,
         "anchor_matched": anchor_matched,
+        "style_applied": style_applied,
+        "style_hash": style_hash,
         "rubric_version": rubric_version,
         "graded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "override_score": None,

@@ -9,6 +9,7 @@ export interface User {
   theme: string;
   preferredProvider: string;
   preferredModel: string;
+  gradingStyle: string;
 }
 
 interface AuthState {

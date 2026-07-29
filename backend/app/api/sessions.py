@@ -33,6 +33,7 @@ def _score_record_out(rec: dict) -> dict:
         "confidence": rec["confidence"],
         "evidence": rec["evidence"],
         "anchorMatched": rec["anchor_matched"] or None,
+        "styleApplied": rec.get("style_applied") or None,
         "rubricVersion": rec["rubric_version"],
         "gradedAt": rec["graded_at"],
         "needsReview": rec["needs_review"],

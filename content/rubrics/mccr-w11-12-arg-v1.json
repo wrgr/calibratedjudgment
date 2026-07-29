@@ -1,6 +1,6 @@
 {
   "rubricId": "mccr-w11-12-arg",
-  "version": "1.0",
+  "version": "1.0-t3",
   "genre": "argumentative",
   "notes": "Operational rubric for MCCR W.11-12.1 (argumentative writing) + L.11-12 conventions. Constructed per TGFWA spec §3: MSDE standards define WHAT to assess; performance-level descriptors are modeled on the MCAP/PARCC condensed scoring rubric (grades 6-11 ELA) adapted to per-sub-standard granularity on a 0-5 scale (Li et al. 2026). Each criterion states ONE observable behavior (atomicity constraint, arXiv 2603.14732). referenceability: 'weak' criteria route to the teacher-reserve queue.",
   "assignmentGuidance": "",
@@ -131,6 +131,7 @@
       "statement": "Maintains a formal style appropriate to academic argument (diction, register, no colloquialisms).",
       "scale": "0-5",
       "referenceability": "strong",
+      "styleEligible": true,
       "source": "MCCR W.11-12.1d ('establish and maintain a formal style')",
       "anchors": {
         "0": "Consistently informal (slang, text-speak, direct address throughout).",
@@ -148,6 +149,7 @@
       "statement": "Maintains an objective tone: claims are advanced through evidence and reasoning rather than unsupported emotional appeals.",
       "scale": "0-5",
       "referenceability": "strong",
+      "styleEligible": true,
       "source": "MCCR W.11-12.1d ('objective tone while attending to the norms and conventions of the discipline')",
       "anchors": {
         "0": "Argument rests on invective, sarcasm, or emotional appeals with no evidentiary support.",
@@ -182,6 +184,7 @@
       "statement": "Demonstrates command of grammar, usage, and mechanics; errors, if present, do not impede meaning.",
       "scale": "0-5",
       "referenceability": "strong",
+      "styleEligible": true,
       "source": "MCCR L.11-12.1 (grammar/usage), L.11-12.2 (capitalization, punctuation, spelling); MCAP 'Knowledge of Language and Conventions' anchors",
       "anchors": {
         "0": "Errors are pervasive and frequently block comprehension.",

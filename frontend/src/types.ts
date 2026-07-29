@@ -64,6 +64,7 @@ export interface ScoreRecord {
   confidence: ConfidenceLevel;
   evidence: EvidenceItem[];
   anchorMatched?: string | null;
+  styleApplied: string | null;
   rubricVersion: string;
   gradedAt: string;
   teacherOverride: TeacherOverride | null;
@@ -76,7 +77,7 @@ export interface ScoreRecord {
 }
 
 export type RelianceMode = 'passive' | 'active' | 'constructive';
-export type RelianceLabel = 'reflective' | 'cautious' | 'thoughtless' | 'collaborative';
+export type RelianceLabel = 'reflective' | 'cautious' | 'thoughtless' | 'collaborative' | 'undetermined';
 
 export interface SegmentCoding {
   segmentTurns: number[];

@@ -29,6 +29,19 @@ def segment_trace(trace: dict) -> list:
 
 
 def summarize_segments(segments: list) -> dict:
+    if not segments:
+        # No codeable student-authored interaction at all (empty trace, or every
+        # segment below failed to code even after retry) — a "thoughtless"/etc.
+        # label would assert a value judgment about behavior that never happened.
+        return {
+            "segments": [],
+            "grid": {h: {m: 0 for m in MODES} for h in MODES},
+            "dominantHelpSeeking": "passive",
+            "dominantResponseUse": "passive",
+            "interpretiveLabel": "undetermined",
+            "verificationRate": 0,
+        }
+
     grid = {h: {m: 0 for m in MODES} for h in MODES}
     for s in segments:
         grid[s["helpSeeking"]][s["responseUse"]] += 1
@@ -74,12 +87,22 @@ def code_layer_b(llm_json, trace: dict, on_progress=None) -> dict:
     for done, seg in enumerate(raw_segments, start=1):
         text = "\n\n".join(f"[turn {t['turnId']} | {t['speaker'].upper()}]\n{t['text']}"
                            for t in seg)
-        raw = llm_json(build_segment_system(), build_segment_prompt(text))
+        try:
+            raw = llm_json(build_segment_system(), build_segment_prompt(text))
+        except Exception:
+            raw = llm_json(build_segment_system(), build_segment_prompt(text))  # one retry, mirrors grade_criterion
         raw = raw if isinstance(raw, dict) else {}
+        help_seeking, response_use = raw.get("helpSeeking"), raw.get("responseUse")
+        if help_seeking not in MODES or response_use not in MODES:
+            # Malformed/unparseable coding for this segment — drop it rather
+            # than fabricate a value (mirrors engine.normalize_pass's guard).
+            if on_progress:
+                on_progress(done, len(raw_segments))
+            continue
         codings.append({
             "segmentTurns": [t["turnId"] for t in seg],
-            "helpSeeking": raw.get("helpSeeking") if raw.get("helpSeeking") in MODES else "active",
-            "responseUse": raw.get("responseUse") if raw.get("responseUse") in MODES else "active",
+            "helpSeeking": help_seeking,
+            "responseUse": response_use,
             "verification": bool(raw.get("verification")),
             "evidence": raw.get("evidence", ""),
         })

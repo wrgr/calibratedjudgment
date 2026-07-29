@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api, clearByoKey, loadByoKey, saveByoKey } from '../api/client';
-import { useAuth } from '../auth';
+import { isStaff, useAuth } from '../auth';
 import type { User } from '../auth';
 
 interface ProviderInfo {
@@ -117,8 +117,54 @@ export default function Settings() {
           )}
         </div>
 
+        {isStaff(user) && <GradingStyleCard />}
+
         <ByoKeyCard providers={providers} defaultProvider={data?.default ?? ''} />
       </div>
+    </div>
+  );
+}
+
+/** Instructor-editable grading-style blurb. Folded directly into the grading
+ *  prompt (services/grading/prompts.py _guidance_block) as an imperative
+ *  instruction the model must account for — there is no separate score
+ *  adjustment; the model's own per-criterion styleApplied explanation (shown
+ *  in the evidence trail) is how you check it actually engaged with this. */
+function GradingStyleCard() {
+  const { user, refresh } = useAuth();
+  const [style, setStyle] = useState(user?.gradingStyle ?? '');
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    await api.put<User>('/api/auth/prefs', { grading_style: style });
+    await refresh();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div className="card max-w-xl p-5">
+      <div className="panel-title">Grading style</div>
+      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+        This text is sent directly to the LLM as an instruction alongside the rubric — it is not a
+        separate score adjustment. Check a criterion's evidence trail after grading to see how the
+        model says it applied (or didn't apply) this to a specific score.
+      </p>
+      <textarea
+        className="mt-3 w-full rounded-sm border p-2 text-sm"
+        style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)', minHeight: '6rem' }}
+        placeholder="e.g. I weight clarity of argument over polish; I'm lenient on mechanics for early drafts."
+        value={style}
+        onChange={(e) => setStyle(e.target.value)}
+        aria-label="Grading style"
+      />
+      <button
+        onClick={() => void save()}
+        className="mt-3 rounded-sm px-4 py-2 text-sm font-semibold text-white"
+        style={{ background: 'var(--accent)' }}
+      >
+        {saved ? 'Saved ✓' : 'Save'}
+      </button>
     </div>
   );
 }

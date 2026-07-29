@@ -3,9 +3,10 @@
 from app.services.grading.aggregate import aggregate_passes, median
 
 
-def _pass(score, evidence=None):
+def _pass(score, evidence=None, style_applied=None):
     return {"score": score, "selfConfidence": "med",
-            "evidence": evidence or [], "anchorMatched": None}
+            "evidence": evidence or [], "anchorMatched": None,
+            "styleApplied": style_applied}
 
 
 def agg(passes, referenceability="strong"):
@@ -77,3 +78,17 @@ def test_single_quote_is_medium_confidence_not_queued():
     r = agg([_pass(4, ev), _pass(4, ev), _pass(4, ev)])
     assert r["confidence"] == "med"
     assert not r["needs_review"]
+
+
+def test_style_applied_carried_from_pass_closest_to_median():
+    r = agg([_pass(1, style_applied="a"), _pass(4, style_applied="b"),
+              _pass(4, style_applied="b")])
+    assert r["median"] == 4
+    assert r["style_applied"] == "b"
+
+
+def test_style_applied_falls_back_to_first_pass_when_no_evidence():
+    r = agg([_pass("no-evidence", style_applied="no style was given"),
+              _pass("no-evidence"), _pass(4)])
+    assert r["no_evidence"]
+    assert r["style_applied"] == "no style was given"

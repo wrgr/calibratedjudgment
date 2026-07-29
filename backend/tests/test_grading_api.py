@@ -6,6 +6,7 @@ import time
 
 import pytest
 
+from app.db import database as db
 from app.services import llm_bridge
 from app.services.grading import prompts
 
@@ -72,13 +73,27 @@ def test_students_cannot_override(student_client):
 
 class FakeLLM:
     """Deterministic stand-in for llm_bridge.make_llm_json: quotes real source
-    text so the provenance guard accepts it."""
+    text so the provenance guard accepts it. Also answers molding calls
+    (attempt 5) with canned notes for the eligible criteria, tracked via a
+    separate call counter/prompt list so grading-call assertions stay clean."""
 
     def __init__(self):
         self.calls = 0
+        self.prompts = []
+        self.mold_calls = 0
+        self.mold_prompts = []
 
     def __call__(self, system, prompt):
+        if "grading-style preference apply consistently" in system:
+            self.mold_calls += 1
+            self.mold_prompts.append(prompt)
+            return {"notes": [
+                {"criterionId": "W1d-1", "note": "Lean into an informal register; do not dock points for colloquial diction."},
+                {"criterionId": "W1d-2", "note": "A passionate voice is fine as long as reasoning underlies it."},
+                {"criterionId": "L1-1", "note": "Minor grammar slips that don't obscure meaning should not lower the score."},
+            ]}
         self.calls += 1
+        self.prompts.append(prompt)
         if "RelianceScope" in system:
             return {"helpSeeking": "active", "responseUse": "constructive",
                     "verification": True, "evidence": "checked the claim"}
@@ -92,12 +107,15 @@ class FakeLLM:
                     quote = " ".join(block.splitlines()[1:])[:120]
                     break
             if not quote:
-                return {"evidence": [], "score": "no-evidence", "selfConfidence": "med"}
+                return {"evidence": [], "score": "no-evidence", "selfConfidence": "med",
+                        "styleApplied": "no evidence to apply style to"}
             return {"evidence": [{"turnId": 0, "quote": quote, "reasoning": "student-authored"}],
-                    "anchorMatched": "anchor", "score": 3, "selfConfidence": "med"}
+                    "anchorMatched": "anchor", "score": 3, "selfConfidence": "med",
+                    "styleApplied": "applied the stated style to this trace criterion"}
         quote = src[:100]
         return {"evidence": [{"turnId": None, "quote": quote, "reasoning": "opens the essay"}],
-                "anchorMatched": "anchor", "score": 4, "selfConfidence": "high"}
+                "anchorMatched": "anchor", "score": 4, "selfConfidence": "high",
+                "styleApplied": "applied the stated style to this product criterion"}
 
 
 def test_grading_job_end_to_end(admin_client, monkeypatch):
@@ -140,6 +158,27 @@ def test_grading_without_provider_is_409(admin_client, monkeypatch):
     assert r.status_code == 409
 
 
+def test_failed_job_marks_assessment_error_not_stuck_grading(admin_client, monkeypatch):
+    def always_fails(system, prompt):
+        raise RuntimeError("provider is down")
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: always_fails)
+    r = admin_client.post("/api/assessments/exemplar-sam/grade",
+                          headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+    job_id = r.json()["jobId"]
+
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        job = admin_client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] != "running":
+            break
+        time.sleep(0.2)
+    assert job["status"] == "error", job
+
+    detail = admin_client.get("/api/assessments/exemplar-sam").json()
+    assert detail["status"] == "error"
+
+
 def test_sse_stream_replays_completed_job(admin_client, monkeypatch):
     fake = FakeLLM()
     monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
@@ -160,3 +199,101 @@ def test_sse_stream_replays_completed_job(admin_client, monkeypatch):
             if events and events[-1]["type"] in ("done", "error"):
                 break
     assert events[-1]["type"] == "done"
+
+
+def test_ineligible_criterion_prompt_unaffected_by_style():
+    """W1a-1 (Claims) is not styleEligible. engine.grade_session only ever
+    looks up a note for it via style_notes.get(cid, "") — which is "" whether
+    an instructor has any grading_style at all, or a style is set but this
+    criterion just isn't in the eligible set. Both situations hand
+    build_product_prompt the same empty style_note, so the resulting prompts
+    must be byte-identical."""
+    rubric = db.get_content("rubric", "mccr-w11-12-arg")["payload"]
+    criterion = next(c for c in rubric["criteria"] if c["criterionId"] == "W1a-1")
+    essay = "An essay about civic duty."
+
+    style_notes_when_style_set = {"W1d-1": "a note", "W1d-2": "a note", "L1-1": "a note"}
+    note_with_style_set = style_notes_when_style_set.get("W1a-1", "")
+    note_with_no_style = {}.get("W1a-1", "")
+
+    prompt_a = prompts.build_product_prompt(criterion, essay, rubric, note_with_style_set)
+    prompt_b = prompts.build_product_prompt(criterion, essay, rubric, note_with_no_style)
+    assert prompt_a == prompt_b
+
+
+def test_eligible_criterion_prompt_gets_scoped_note_not_raw_style_text(admin_client, monkeypatch):
+    style_text = "Value authenticity and voice over rigid formal structure; be lenient on grammar."
+    r = admin_client.put("/api/auth/prefs", json={"grading_style": style_text},
+                         headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+    assert r.json()["gradingStyle"] == style_text
+
+    fake = FakeLLM()
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
+    r = admin_client.post("/api/assessments/exemplar-jordan/grade",
+                          headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+    job_id = r.json()["jobId"]
+
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        job = admin_client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] != "running":
+            break
+        time.sleep(0.2)
+    assert job["status"] == "done", job
+
+    # The raw instructor paragraph never reaches a scoring prompt directly anymore.
+    assert not any(style_text in p for p in fake.prompts)
+
+    label = "TEACHER'S STYLE NOTE FOR THIS CRITERION"
+    eligible_ids = {"W1d-1", "W1d-2", "L1-1"}
+    saw_label = False
+    for p in fake.prompts:
+        if label not in p:
+            continue
+        saw_label = True
+        criterion_id = p.split("CRITERION ", 1)[1].split(" ", 1)[0]
+        assert criterion_id in eligible_ids
+    assert saw_label, "expected at least one eligible criterion's prompt to carry the note"
+
+    detail = admin_client.get("/api/assessments/exemplar-jordan").json()
+    w1a1 = next(s for s in detail["scores"]
+               if s["criterionId"] == "W1a-1" and s["channel"] == "product")
+    assert "does not apply to it" in w1a1["styleApplied"]
+
+
+def test_grading_style_mold_cached_across_regrade(admin_client, monkeypatch):
+    # Distinct text from other tests in this module so this test's cache key
+    # is guaranteed fresh, regardless of test execution order.
+    style_text = "Cache-test style: reward bold, unconventional structure over the five-paragraph form."
+    admin_client.put("/api/auth/prefs", json={"grading_style": style_text},
+                     headers={"X-Requested-With": "fetch"})
+
+    fake = FakeLLM()
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
+
+    def run_and_wait():
+        r = admin_client.post("/api/assessments/exemplar-jordan/grade",
+                              headers={"X-Requested-With": "fetch"})
+        assert r.status_code == 200, r.text
+        job_id = r.json()["jobId"]
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            job = admin_client.get(f"/api/jobs/{job_id}").json()
+            if job["status"] != "running":
+                break
+            time.sleep(0.2)
+        assert job["status"] == "done", job
+
+    run_and_wait()
+    assert fake.mold_calls == 1
+    run_and_wait()
+    assert fake.mold_calls == 1  # unchanged style/rubric-version -> cache hit, no second mold call
+
+    detail = admin_client.get("/api/assessments/exemplar-jordan").json()
+    product = next(s for s in detail["scores"] if s["channel"] == "product")
+    assert product["styleApplied"] == "applied the stated style to this product criterion"
+    # Whether the LLM's *score* actually moves in response to a stated grading
+    # style is a model-compliance question a hardcoded FakeLLM can't meaningfully
+    # test — that remains a manual check against a live provider (see plan).

@@ -121,6 +121,11 @@ export function EvidenceTrail({ record, criterion, assessmentId, onChanged, star
               <span className="font-medium">Anchor matched:</span> {record.anchorMatched}
             </div>
           )}
+          {record.styleApplied && (
+            <div style={{ color: 'var(--ink-muted)' }}>
+              <span className="font-medium">Grading style:</span> {record.styleApplied}
+            </div>
+          )}
           {record.reviewReasons.length > 0 && (
             <ul className="list-inside list-disc" style={{ color: 'var(--status-serious-text)' }}>
               {record.reviewReasons.map((r, i) => <li key={i}>{r}</li>)}

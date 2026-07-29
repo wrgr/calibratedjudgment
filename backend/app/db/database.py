@@ -98,6 +98,7 @@ def init_db():
                 created_at         TEXT NOT NULL DEFAULT ''
             )
         """)
+        _widen(c, "users", {"grading_style": "TEXT NOT NULL DEFAULT ''"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS auth_sessions (
                 token_hash TEXT PRIMARY KEY,
@@ -162,6 +163,8 @@ def init_db():
                 PRIMARY KEY (assessment_id, criterion_id, channel)
             )
         """)
+        _widen(c, "score_records", {"style_applied": "TEXT NOT NULL DEFAULT ''",
+                                    "style_hash": "TEXT NOT NULL DEFAULT ''"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS layer_b_results (
                 assessment_id         TEXT PRIMARY KEY,
@@ -199,6 +202,16 @@ def init_db():
             CREATE TABLE IF NOT EXISTS llm_eval_cache (
                 key        TEXT PRIMARY KEY,
                 response   TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS style_molds (
+                cache_key  TEXT PRIMARY KEY,
+                content_id TEXT NOT NULL,
+                version    TEXT NOT NULL,
+                style_hash TEXT NOT NULL,
+                notes_json TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )
         """)
@@ -315,6 +328,12 @@ def set_model_pref(username: str, provider: str, model: str):
             "UPDATE users SET preferred_provider=?, preferred_model=? WHERE username=?",
             (provider or "", model or "", username),
         )
+        c.commit()
+
+
+def set_grading_style(username: str, style: str):
+    with _conn() as c:
+        c.execute("UPDATE users SET grading_style=? WHERE username=?", (style or "", username))
         c.commit()
 
 
@@ -511,8 +530,9 @@ def upsert_score_record(assessment_id: str, rec: dict):
             "INSERT OR REPLACE INTO score_records "
             "(assessment_id, criterion_id, channel, passes, median, spread, no_evidence, "
             " confidence, evidence, anchor_matched, rubric_version, graded_at, "
-            " needs_review, review_reasons, override_score, override_rationale, override_ts) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " needs_review, review_reasons, override_score, override_rationale, override_ts, "
+            " style_applied, style_hash) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (assessment_id, rec["criterion_id"], rec["channel"],
              json.dumps(rec.get("passes", [])), rec.get("median"), rec.get("spread"),
              1 if rec.get("no_evidence") else 0, rec.get("confidence", "low"),
@@ -521,7 +541,8 @@ def upsert_score_record(assessment_id: str, rec: dict):
              1 if rec.get("needs_review") else 0,
              json.dumps(rec.get("review_reasons", [])),
              rec.get("override_score"), rec.get("override_rationale", "") or "",
-             rec.get("override_ts", "") or ""),
+             rec.get("override_ts", "") or "",
+             rec.get("style_applied", "") or "", rec.get("style_hash", "") or ""),
         )
         c.commit()
 
@@ -776,6 +797,27 @@ def eval_cache_set(key: str, response: str):
                 "  SELECT key FROM llm_eval_cache ORDER BY created_at ASC, key ASC LIMIT ?)",
                 (excess,),
             )
+        c.commit()
+
+
+# ── Style-mold cache (attempt 5: per-criterion grading-style reconciliation
+# notes, molded once per rubric-version × style-text pair from the pristine
+# rubric baseline, never from a prior mold — see molding.get_or_mold_notes) ──
+
+def get_style_mold(key: str):
+    with _conn() as c:
+        row = c.execute("SELECT notes_json FROM style_molds WHERE cache_key=?", (key,)).fetchone()
+        return json.loads(row["notes_json"]) if row else None
+
+
+def set_style_mold(key: str, content_id: str, version: str, style_hash: str, notes: dict):
+    with _conn() as c:
+        c.execute(
+            "INSERT OR REPLACE INTO style_molds "
+            "(cache_key, content_id, version, style_hash, notes_json, created_at) "
+            "VALUES (?, ?, ?, ?, ?, datetime('now'))",
+            (key, content_id, version, style_hash, json.dumps(notes)),
+        )
         c.commit()
 
 

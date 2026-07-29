@@ -18,6 +18,7 @@ class PrefsRequest(BaseModel):
     theme: str | None = None
     preferred_provider: str | None = None
     preferred_model: str | None = None
+    grading_style: str | None = None
 
 
 def _public_user(user: dict) -> dict:
@@ -28,6 +29,7 @@ def _public_user(user: dict) -> dict:
         "theme": user["theme"],
         "preferredProvider": user["preferred_provider"],
         "preferredModel": user["preferred_model"],
+        "gradingStyle": user["grading_style"],
     }
 
 
@@ -83,4 +85,6 @@ def update_prefs(body: PrefsRequest, user: dict = Depends(security.require_user)
             security.sanitize_str(body.preferred_provider or user["preferred_provider"], 64),
             security.sanitize_str(body.preferred_model or user["preferred_model"], 128),
         )
+    if body.grading_style is not None:
+        db.set_grading_style(user["username"], security.sanitize_str(body.grading_style, 2000))
     return _public_user(db.get_user(user["username"]))
