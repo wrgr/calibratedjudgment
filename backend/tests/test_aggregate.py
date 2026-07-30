@@ -92,3 +92,21 @@ def test_style_applied_falls_back_to_first_pass_when_no_evidence():
               _pass("no-evidence"), _pass(4)])
     assert r["no_evidence"]
     assert r["style_applied"] == "no style was given"
+
+
+def test_style_note_and_intensity_round_trip():
+    """Unlike style_applied (derived per-pass), style_note/style_intensity
+    describe the whole molding context for this criterion, so they're
+    passed straight through rather than picked from a representative pass."""
+    r = aggregate_passes(criterion_id="C1", channel="product", referenceability="strong",
+                         passes=[_pass(4), _pass(4), _pass(4)], rubric_version="1.0",
+                         style_note="Lean into an informal register.",
+                         style_intensity="strong")
+    assert r["style_note"] == "Lean into an informal register."
+    assert r["style_intensity"] == "strong"
+
+
+def test_style_note_and_intensity_default_to_empty():
+    r = agg([_pass(4), _pass(4), _pass(4)])
+    assert r["style_note"] == ""
+    assert r["style_intensity"] == ""

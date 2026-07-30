@@ -42,6 +42,11 @@ _INTENSITY_CLAUSE = {
 
 VALID_INTENSITIES = frozenset(_INTENSITY_CLAUSE)
 
+# Bump whenever build_mold_system/_INTENSITY_CLAUSE wording changes, so a
+# prompt edit always produces a fresh, distinguishable mold instead of
+# silently reusing a style_molds row generated under different wording.
+MOLD_PROMPT_VERSION = "1"
+
 
 def eligible_criteria(rubric: dict) -> list:
     return [c for c in rubric.get("criteria", []) if c.get("styleEligible")]
@@ -160,7 +165,7 @@ def get_or_mold_notes(llm_json, *, content_id: str, version: str, rubric: dict,
         intensity = DEFAULT_INTENSITY
 
     style_hash = _style_hash(style)
-    cache_key = f"{content_id}:{version}:{style_hash}:{intensity}"
+    cache_key = f"{content_id}:{version}:{style_hash}:{intensity}:{MOLD_PROMPT_VERSION}"
     cached = db.get_style_mold(cache_key)
     if cached is not None:
         return cached
@@ -169,5 +174,6 @@ def get_or_mold_notes(llm_json, *, content_id: str, version: str, rubric: dict,
     if not validate_mold(notes, eligible):
         return {}  # fail open, but don't cache a failure as if it were a real result
 
-    db.set_style_mold(cache_key, content_id, version, style_hash, notes)
+    db.set_style_mold(cache_key, content_id, version, style_hash, intensity,
+                      MOLD_PROMPT_VERSION, notes)
     return notes

@@ -123,7 +123,8 @@ def normalize_pass(raw: dict, channel: str, source: dict, style_status: str = "n
 
 
 def grade_criterion(llm_json, criterion: dict, channel: str, rubric: dict,
-                    source: dict, grading_style: str = "", style_note: str = "") -> dict:
+                    source: dict, grading_style: str = "", style_note: str = "",
+                    style_intensity: str = "") -> dict:
     status = _style_status(criterion, grading_style, style_note)
     if channel == "product":
         system = build_product_system()
@@ -149,12 +150,14 @@ def grade_criterion(llm_json, criterion: dict, channel: str, rubric: dict,
         passes=passes,
         rubric_version=rubric.get("version", ""),
         style_hash=_style_hash(grading_style) if (grading_style or "").strip() else "",
+        style_note=style_note,
+        style_intensity=style_intensity if (grading_style or "").strip() else "",
     )
 
 
 def grade_session(*, llm_json, rubric: dict, essay: str, trace: dict,
                   grading_style: str = "", style_notes: dict | None = None,
-                  on_progress=None, on_result=None) -> list:
+                  style_intensity: str = "", on_progress=None, on_result=None) -> list:
     """Grade every criterion on both channels. Streams results via on_result as
     each criterion×channel completes (progressive persistence + SSE).
 
@@ -173,7 +176,8 @@ def grade_session(*, llm_json, rubric: dict, essay: str, trace: dict,
     def run(job):
         criterion, channel = job
         note = style_notes.get(criterion["criterionId"], "")
-        return grade_criterion(llm_json, criterion, channel, rubric, source, grading_style, note)
+        return grade_criterion(llm_json, criterion, channel, rubric, source, grading_style,
+                               note, style_intensity)
 
     with ThreadPoolExecutor(max_workers=min(CONCURRENCY, max(1, len(jobs)))) as pool:
         futures = {pool.submit(run, job): job for job in jobs}

@@ -16,7 +16,8 @@ def median(nums):
 
 
 def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
-                     passes: list, rubric_version: str, style_hash: str = "") -> dict:
+                     passes: list, rubric_version: str, style_hash: str = "",
+                     style_note: str = "", style_intensity: str = "") -> dict:
     """passes: list of dicts {score: int|'no-evidence', selfConfidence, evidence, anchorMatched}.
 
     Returns a score record dict (snake_case keys, matching the score_records table).
@@ -82,6 +83,8 @@ def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
         "anchor_matched": anchor_matched,
         "style_applied": style_applied,
         "style_hash": style_hash,
+        "style_note": style_note,
+        "style_intensity": style_intensity,
         "rubric_version": rubric_version,
         "graded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "override_score": None,

@@ -61,6 +61,7 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
             engine.grade_session(
                 llm_json=llm_json, rubric=rubric, essay=essay, trace=trace,
                 grading_style=grading_style, style_notes=style_notes,
+                style_intensity=style_intensity,
                 on_progress=lambda done, _t, label: report(done, total, label),
                 on_result=on_result,
             )

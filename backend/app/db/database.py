@@ -165,7 +165,9 @@ def init_db():
             )
         """)
         _widen(c, "score_records", {"style_applied": "TEXT NOT NULL DEFAULT ''",
-                                    "style_hash": "TEXT NOT NULL DEFAULT ''"})
+                                    "style_hash": "TEXT NOT NULL DEFAULT ''",
+                                    "style_note": "TEXT NOT NULL DEFAULT ''",
+                                    "style_intensity": "TEXT NOT NULL DEFAULT ''"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS layer_b_results (
                 assessment_id         TEXT PRIMARY KEY,
@@ -216,6 +218,8 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        _widen(c, "style_molds", {"intensity": "TEXT NOT NULL DEFAULT ''",
+                                  "mold_prompt_version": "TEXT NOT NULL DEFAULT ''"})
         c.commit()
 
 
@@ -538,8 +542,8 @@ def upsert_score_record(assessment_id: str, rec: dict):
             "(assessment_id, criterion_id, channel, passes, median, spread, no_evidence, "
             " confidence, evidence, anchor_matched, rubric_version, graded_at, "
             " needs_review, review_reasons, override_score, override_rationale, override_ts, "
-            " style_applied, style_hash) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " style_applied, style_hash, style_note, style_intensity) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (assessment_id, rec["criterion_id"], rec["channel"],
              json.dumps(rec.get("passes", [])), rec.get("median"), rec.get("spread"),
              1 if rec.get("no_evidence") else 0, rec.get("confidence", "low"),
@@ -549,7 +553,8 @@ def upsert_score_record(assessment_id: str, rec: dict):
              json.dumps(rec.get("review_reasons", [])),
              rec.get("override_score"), rec.get("override_rationale", "") or "",
              rec.get("override_ts", "") or "",
-             rec.get("style_applied", "") or "", rec.get("style_hash", "") or ""),
+             rec.get("style_applied", "") or "", rec.get("style_hash", "") or "",
+             rec.get("style_note", "") or "", rec.get("style_intensity", "") or ""),
         )
         c.commit()
 
@@ -817,13 +822,16 @@ def get_style_mold(key: str):
         return json.loads(row["notes_json"]) if row else None
 
 
-def set_style_mold(key: str, content_id: str, version: str, style_hash: str, notes: dict):
+def set_style_mold(key: str, content_id: str, version: str, style_hash: str,
+                   intensity: str, mold_prompt_version: str, notes: dict):
     with _conn() as c:
         c.execute(
             "INSERT OR REPLACE INTO style_molds "
-            "(cache_key, content_id, version, style_hash, notes_json, created_at) "
-            "VALUES (?, ?, ?, ?, ?, datetime('now'))",
-            (key, content_id, version, style_hash, json.dumps(notes)),
+            "(cache_key, content_id, version, style_hash, intensity, mold_prompt_version, "
+            " notes_json, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+            (key, content_id, version, style_hash, intensity, mold_prompt_version,
+             json.dumps(notes)),
         )
         c.commit()
 

@@ -263,6 +263,12 @@ def test_eligible_criterion_prompt_gets_scoped_note_not_raw_style_text(admin_cli
     w1a1 = next(s for s in detail["scores"]
                if s["criterionId"] == "W1a-1" and s["channel"] == "product")
     assert "does not apply to it" in w1a1["styleApplied"]
+    assert w1a1["styleNote"] is None  # ineligible criterion: no note was ever shown to it
+
+    w1d1 = next(s for s in detail["scores"]
+               if s["criterionId"] == "W1d-1" and s["channel"] == "product")
+    assert w1d1["styleNote"] == "Lean into an informal register; do not dock points for colloquial diction."
+    assert w1d1["styleIntensity"] == "moderate"  # default, since this test never set the slider
 
 
 def test_grading_style_mold_cached_across_regrade(admin_client, monkeypatch):

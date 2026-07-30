@@ -69,6 +69,38 @@ def test_style_applied_forced_when_unavailable():
     assert "could not be safely generated" in p["styleApplied"]
 
 
+def test_grade_criterion_carries_style_note_and_intensity_into_record():
+    """style_note/style_intensity describe the molding context this criterion
+    was graded under; grade_criterion must thread them into the persisted
+    score record (via aggregate_passes) so they're independently auditable
+    later, not just recoverable from the (mutable) user prefs at query time."""
+    def fake_llm(system, prompt):
+        return {"evidence": [{"quote": "essay text", "reasoning": "r"}],
+                "anchorMatched": "anchor", "score": 4, "selfConfidence": "high",
+                "styleApplied": "applied"}
+
+    criterion = {"criterionId": "W1d-1", "styleEligible": True, "standard": "W1d",
+                "statement": "Formal style."}
+    rec = engine.grade_criterion(fake_llm, criterion, "product", {"version": "1.0"},
+                                 {"essay": "essay text"}, grading_style="be lenient",
+                                 style_note="Lean into an informal register.",
+                                 style_intensity="strong")
+    assert rec["style_note"] == "Lean into an informal register."
+    assert rec["style_intensity"] == "strong"
+
+
+def test_grade_criterion_omits_intensity_when_no_style_set():
+    def fake_llm(system, prompt):
+        return {"evidence": [{"quote": "essay text", "reasoning": "r"}],
+                "anchorMatched": "anchor", "score": 4, "selfConfidence": "high"}
+
+    criterion = {"criterionId": "W1a-1", "styleEligible": False, "standard": "W1a",
+                "statement": "States a claim."}
+    rec = engine.grade_criterion(fake_llm, criterion, "product", {"version": "1.0"},
+                                 {"essay": "essay text"})
+    assert rec["style_intensity"] == ""
+
+
 def test_numeric_score_with_no_evidence_key_is_demoted():
     """A model can claim a score with zero evidence attached (omitting the
     `evidence` field, rather than supplying evidence that gets rejected) —

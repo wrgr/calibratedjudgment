@@ -34,6 +34,8 @@ def _score_record_out(rec: dict) -> dict:
         "evidence": rec["evidence"],
         "anchorMatched": rec["anchor_matched"] or None,
         "styleApplied": rec.get("style_applied") or None,
+        "styleNote": rec.get("style_note") or None,
+        "styleIntensity": rec.get("style_intensity") or None,
         "rubricVersion": rec["rubric_version"],
         "gradedAt": rec["graded_at"],
         "needsReview": rec["needs_review"],

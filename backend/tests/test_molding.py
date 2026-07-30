@@ -209,3 +209,27 @@ def test_get_or_mold_notes_defaults_to_moderate_intensity():
     molding.get_or_mold_notes(capturing_llm, content_id="test-rubric-default", version="1.0",
                               rubric=rubric, grading_style="be lenient")
     assert captured["system"] == molding.build_mold_system("moderate")
+
+
+# ---- Traceability: intensity + mold-prompt-version stamped on style_molds ----
+
+def test_get_or_mold_notes_stores_intensity_and_prompt_version_on_row():
+    """style_molds rows must record which intensity and which molding-prompt
+    version produced them, so a future wording change to build_mold_system/
+    _INTENSITY_CLAUSE is distinguishable from old cached rows rather than
+    silently indistinguishable under an identical-looking cache key."""
+    rubric = _rubric()
+
+    def fake_llm(system, prompt):
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    molding.get_or_mold_notes(fake_llm, content_id="test-rubric-prov", version="1.0",
+                              rubric=rubric, grading_style="be lenient", intensity="strong")
+
+    style_hash = molding._style_hash("be lenient")
+    cache_key = f"test-rubric-prov:1.0:{style_hash}:strong:{molding.MOLD_PROMPT_VERSION}"
+    with db._conn() as c:
+        row = c.execute("SELECT intensity, mold_prompt_version FROM style_molds WHERE cache_key=?",
+                        (cache_key,)).fetchone()
+    assert row["intensity"] == "strong"
+    assert row["mold_prompt_version"] == molding.MOLD_PROMPT_VERSION

@@ -65,6 +65,8 @@ export interface ScoreRecord {
   evidence: EvidenceItem[];
   anchorMatched?: string | null;
   styleApplied: string | null;
+  styleNote: string | null;
+  styleIntensity: string | null;
   rubricVersion: string;
   gradedAt: string;
   teacherOverride: TeacherOverride | null;

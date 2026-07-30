@@ -126,6 +126,12 @@ export function EvidenceTrail({ record, criterion, assessmentId, onChanged, star
               <span className="font-medium">Grading style:</span> {record.styleApplied}
             </div>
           )}
+          {record.styleNote && (
+            <div style={{ color: 'var(--ink-muted)' }}>
+              <span className="font-medium">Note shown to the model{record.styleIntensity ? ` (${record.styleIntensity} intensity)` : ''}:</span>{' '}
+              “{record.styleNote}”
+            </div>
+          )}
           {record.reviewReasons.length > 0 && (
             <ul className="list-inside list-disc" style={{ color: 'var(--status-serious-text)' }}>
               {record.reviewReasons.map((r, i) => <li key={i}>{r}</li>)}
