@@ -166,17 +166,12 @@ def init_db():
             )
         """)
         _widen(c, "score_records", {"style_applied": "TEXT NOT NULL DEFAULT ''",
-                                    "style_hash": "TEXT NOT NULL DEFAULT ''",
                                     "style_note": "TEXT NOT NULL DEFAULT ''",
                                     "style_intensity": "TEXT NOT NULL DEFAULT ''"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS layer_b_results (
                 assessment_id         TEXT PRIMARY KEY,
-                result                TEXT NOT NULL,
-                dominant_help_seeking TEXT NOT NULL DEFAULT '',
-                dominant_response_use TEXT NOT NULL DEFAULT '',
-                interpretive_label    TEXT NOT NULL DEFAULT '',
-                verification_rate     REAL
+                result                TEXT NOT NULL
             )
         """)
         c.execute("""
@@ -579,8 +574,8 @@ def upsert_score_record(assessment_id: str, rec: dict):
             "(assessment_id, criterion_id, channel, passes, median, spread, no_evidence, "
             " confidence, evidence, anchor_matched, rubric_version, graded_at, "
             " needs_review, review_reasons, override_score, override_rationale, override_ts, "
-            " style_applied, style_hash, style_note, style_intensity) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " style_applied, style_note, style_intensity) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (assessment_id, rec["criterion_id"], rec["channel"],
              json.dumps(rec.get("passes", [])), rec.get("median"), rec.get("spread"),
              1 if rec.get("no_evidence") else 0, rec.get("confidence", "low"),
@@ -590,7 +585,7 @@ def upsert_score_record(assessment_id: str, rec: dict):
              json.dumps(rec.get("review_reasons", [])),
              rec.get("override_score"), rec.get("override_rationale", "") or "",
              rec.get("override_ts", "") or "",
-             rec.get("style_applied", "") or "", rec.get("style_hash", "") or "",
+             rec.get("style_applied", "") or "",
              rec.get("style_note", "") or "", rec.get("style_intensity", "") or ""),
         )
         c.commit()
@@ -687,12 +682,8 @@ def overrides_for_criterion(criterion_id: str):
 def upsert_layer_b(assessment_id: str, result: dict):
     with _conn() as c:
         c.execute(
-            "INSERT OR REPLACE INTO layer_b_results "
-            "(assessment_id, result, dominant_help_seeking, dominant_response_use, "
-            " interpretive_label, verification_rate) VALUES (?,?,?,?,?,?)",
-            (assessment_id, json.dumps(result),
-             result.get("dominantHelpSeeking", ""), result.get("dominantResponseUse", ""),
-             result.get("interpretiveLabel", ""), result.get("verificationRate")),
+            "INSERT OR REPLACE INTO layer_b_results (assessment_id, result) VALUES (?,?)",
+            (assessment_id, json.dumps(result)),
         )
         c.commit()
 

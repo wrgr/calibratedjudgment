@@ -14,7 +14,6 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .aggregate import aggregate_passes
-from .molding import _style_hash
 from .prompts import (build_product_prompt, build_product_system,
                       build_trace_prompt, build_trace_system)
 
@@ -149,7 +148,6 @@ def grade_criterion(llm_json, criterion: dict, channel: str, rubric: dict,
         referenceability=criterion.get("referenceability", "strong"),
         passes=passes,
         rubric_version=rubric.get("version", ""),
-        style_hash=_style_hash(grading_style) if (grading_style or "").strip() else "",
         style_note=style_note,
         style_intensity=style_intensity if (grading_style or "").strip() else "",
     )
