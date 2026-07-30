@@ -38,12 +38,25 @@ def create_app() -> FastAPI:
     if FRONTEND_DIST.exists():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
+        _DIST_ROOT = FRONTEND_DIST.resolve()
+
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
-            candidate = FRONTEND_DIST / path
-            if path and candidate.is_file():
-                return FileResponse(candidate)
-            return FileResponse(FRONTEND_DIST / "index.html")
+            index = _DIST_ROOT / "index.html"
+            if path:
+                # Confine to dist/. Without the resolve()+relative_to() check,
+                # `GET /../../backend/data/assessments.db` served the database —
+                # Starlette hands `..` segments through to this handler intact,
+                # and Path.__truediv__ happily walks out of the directory.
+                # resolve() also collapses symlinks pointing outside the root.
+                try:
+                    candidate = (_DIST_ROOT / path).resolve()
+                    candidate.relative_to(_DIST_ROOT)
+                except (ValueError, OSError):
+                    return FileResponse(index)
+                if candidate.is_file():
+                    return FileResponse(candidate)
+            return FileResponse(index)
 
     return app
 

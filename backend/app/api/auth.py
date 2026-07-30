@@ -66,7 +66,13 @@ def login(body: LoginRequest, request: Request, response: Response):
 
 
 @router.post("/logout")
-def logout(response: Response, ap_session: str = Cookie(default=None)):
+def logout(request: Request, response: Response, ap_session: str = Cookie(default=None)):
+    # Same custom-header CSRF gate every other mutating route gets via
+    # require_user. logout can't use that dependency (it must still succeed for
+    # an already-expired session), so the check is inlined rather than skipped —
+    # otherwise any cross-site form post could sign the user out.
+    if request.headers.get("x-requested-with") != "fetch":
+        raise HTTPException(status_code=403, detail="Missing request header.")
     if ap_session:
         security.destroy_session(ap_session)
     response.delete_cookie(security.COOKIE_NAME, path="/")

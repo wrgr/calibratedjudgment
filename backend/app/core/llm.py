@@ -132,10 +132,16 @@ def _http_error_detail(http_error):
     return None
 
 
-def _raise_http_error(http_error):
-    """Translate an HTTPError into a clear LLMError / LLMRateLimitError (always raises)."""
+def _raise_http_error(http_error, api_key=None):
+    """Translate an HTTPError into a clear LLMError / LLMRateLimitError (always raises).
+
+    `api_key` is scrubbed from the provider's message: these errors reach the
+    browser (job error rows, the chat 502 body), and some providers quote the
+    rejected credential back. With a server-side key in use that would hand a
+    student the platform's own API key.
+    """
     msg = _describe_http_status(http_error.code)
-    detail = _http_error_detail(http_error)
+    detail = _redact(_http_error_detail(http_error), api_key)
     if detail:
         msg += f" Provider said: {detail}"
     if http_error.code == 429:
@@ -431,7 +437,7 @@ def _raw_chat(model, api_key, base_url, max_tokens, system, user, think=None, js
             if e.code == 429 and attempt < _RATE_LIMIT_MAX_RETRIES:
                 time.sleep(_retry_after_seconds(e, attempt))
                 continue
-            _raise_http_error(e)
+            _raise_http_error(e, api_key)
 
     # ── attempt 2: Ollama native /api/chat (older Ollama or base_url without /v1) ──
     host = base[:-3] if base.endswith("/v1") else base
@@ -593,7 +599,7 @@ def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, js
     except LLMError:
         raise   # already carries an accurate, user-facing message
     except urllib.error.HTTPError as e:
-        _raise_http_error(e)
+        _raise_http_error(e, api_key)
     except (urllib.error.URLError, TimeoutError, socket.timeout) as e:
         # URLError covers DNS/connection failures; the timeouts cover read timeouts.
         # (HTTPError is a URLError subclass but is handled above.)
@@ -625,8 +631,10 @@ def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, js
         # LLMError rather than ConnectionError also stops the retry ladder from
         # burning 15s per call on something a retry cannot fix.
         logger.exception("[llm] unexpected failure calling %s", base_url)
+        # SDK exception text can embed the provider's response body, which may
+        # quote the rejected credential -- and this string reaches the browser.
         raise LLMError(
-            f"Unexpected LLM client failure ({type(e).__name__}): {e}"
+            _redact(f"Unexpected LLM client failure ({type(e).__name__}): {e}", api_key)
         ) from e
 
 

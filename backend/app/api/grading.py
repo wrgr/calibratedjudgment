@@ -98,15 +98,29 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
     return {"jobId": job_id, "total": total}
 
 
-@router.get("/jobs/{job_id}")
-def get_job(job_id: str, user: dict = Depends(security.require_user)):
+def _owned_job(job_id: str, user: dict) -> dict:
+    """A job inherits its assessment's visibility. Without this, the ownership
+    check on /assessments/{id} was bypassable: a student blocked from another
+    student's assessment could still read that assessment's job id, progress
+    and error text through /jobs/{id} and its SSE stream."""
     job = db.get_job(job_id)
     if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    a = db.get_assessment(job["assessment_id"])
+    if not a or (user["role"] not in ("admin", "instructor")
+                 and a["username"] != user["username"]):
+        # 404, not 403 — same reason as _get_owned in sessions.py.
         raise HTTPException(status_code=404, detail="Job not found.")
     return job
 
 
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str, user: dict = Depends(security.require_user)):
+    return _owned_job(job_id, user)
+
+
 @router.get("/jobs/{job_id}/events")
 def job_events(job_id: str, user: dict = Depends(security.require_user)):
+    _owned_job(job_id, user)
     return StreamingResponse(jobs.sse_events(job_id), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache"})
