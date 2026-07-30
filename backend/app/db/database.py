@@ -656,6 +656,10 @@ def get_layer_b(assessment_id: str):
 
 # ── Grading reliability (Mode A: LLM vs instructor overrides) ─────────────────
 
+CALIBRATION_MIN_OVERRIDES = 3          # don't flag on 1-2 noisy corrections
+CALIBRATION_AVG_DELTA_THRESHOLD = 1.5  # points; "the LLM is usually wrong here"
+
+
 def mode_a_reliability_stats():
     """LLM-vs-instructor calibration for essay/trace grading, derived entirely
     from score_records — no separate annotation step. An instructor override
@@ -691,6 +695,11 @@ def mode_a_reliability_stats():
             d = dict(r)
             d["resolution_rate"] = (d["overridden"] / d["needs_review"]) if d["needs_review"] else None
             d["avg_delta"] = round(d["avg_delta"], 2) if d["avg_delta"] is not None else None
+            d["needs_calibration_review"] = (
+                d["avg_delta"] is not None
+                and d["avg_delta"] >= CALIBRATION_AVG_DELTA_THRESHOLD
+                and d["overridden"] >= CALIBRATION_MIN_OVERRIDES
+            )
             by_criterion.append(d)
         # worst-miscalibration first; criteria with no delta data sink to the bottom
         by_criterion.sort(key=lambda d: (d["avg_delta"] is None, -(d["avg_delta"] or 0)))
@@ -710,6 +719,8 @@ def mode_a_reliability_stats():
         "resolution_rate": (overridden / needs_review) if needs_review else None,
         "avg_override_delta": round(avg_delta, 2) if avg_delta is not None else None,
         "by_criterion": by_criterion,
+        "flagged_criteria": [d["criterion_id"] for d in by_criterion
+                            if d["needs_calibration_review"]],
         "recent": recent,
     }
 

@@ -152,6 +152,34 @@ export interface ContentItem<T = Record<string, unknown>> {
   payload: T;
 }
 
+export interface ReliabilityStats {
+  total: number;
+  needs_review: number;
+  overridden: number;
+  resolution_rate: number | null;
+  avg_override_delta: number | null;
+  by_criterion: {
+    criterion_id: string;
+    total: number;
+    needs_review: number;
+    overridden: number;
+    resolution_rate: number | null;
+    avg_delta: number | null;
+    needs_calibration_review: boolean;
+  }[];
+  flagged_criteria: string[];
+  recent: {
+    criterion_id: string;
+    channel: string;
+    median: number | null;
+    override_score: number;
+    override_rationale: string;
+    override_ts: string;
+    username: string;
+    assessment_name: string;
+  }[];
+}
+
 export interface GradingProgress {
   done: number;
   total: number;

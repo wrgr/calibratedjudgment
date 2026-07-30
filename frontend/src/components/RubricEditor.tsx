@@ -6,8 +6,9 @@ import { downloadJSON } from '../types';
 /** Instructor rubric adaptation — ported from TGFWA RubricEditor.tsx. Every save
  *  goes through the content API, which bumps the version so scores are traceable
  *  to the rubric that produced them; the JSON export is diffable and citable. */
-export function RubricEditor({ item, onSaved }: {
+export function RubricEditor({ item, flagged, onSaved }: {
   item: ContentItem<Rubric>;
+  flagged?: Map<string, { avgDelta: number; overridden: number }>;
   onSaved: () => void;
 }) {
   const rubric = item.payload;
@@ -72,10 +73,20 @@ export function RubricEditor({ item, onSaved }: {
         </label>
       </div>
 
-      {draft.criteria.map((c, idx) => (
+      {draft.criteria.map((c, idx) => {
+        const flag = flagged?.get(c.criterionId);
+        return (
         <details key={c.criterionId} className="card p-4">
           <summary className="cursor-pointer text-sm">
             <b>{c.criterionId}</b> <span style={{ color: 'var(--ink-muted)' }}>({c.standard} · {c.referenceability === 'weak' ? 'teacher-reserve' : 'auto-gradable'})</span> — {c.statement}
+            {flag && (
+              <span
+                className="ml-2 rounded px-1.5 py-0.5 text-xs"
+                style={{ background: 'var(--div-mid)', color: 'var(--status-serious-text)' }}
+              >
+                ⚑ miscalibrated — avg Δ {flag.avgDelta} pts over {flag.overridden} overrides
+              </span>
+            )}
           </summary>
           <div className="mt-3 space-y-2 text-sm">
             <label className="block">
@@ -107,7 +118,8 @@ export function RubricEditor({ item, onSaved }: {
             </label>
           </div>
         </details>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -62,6 +62,48 @@ def test_reliability_dashboard_reflects_overrides(admin_client):
     assert recent["override_score"] is not None
 
 
+def test_reliability_flags_criterion_crossing_calibration_threshold():
+    """needs_calibration_review/flagged_criteria are a threshold applied on top
+    of avg_delta/overridden — CALIBRATION_MIN_OVERRIDES overrides AND
+    CALIBRATION_AVG_DELTA_THRESHOLD points, both required, so a single
+    correction or a small delta never lights up the flag."""
+    from app.db import database as db
+
+    def _override_with_delta(criterion_id, median, override_score, n, rationale):
+        for i in range(n):
+            aid = f"calib-test-{criterion_id}-{i}-{db.new_id()}"
+            db.upsert_score_record(aid, {
+                "criterion_id": criterion_id, "channel": "product",
+                "passes": [median, median, median], "median": median, "spread": 0,
+                "no_evidence": False, "confidence": "high", "evidence": [],
+                "anchor_matched": None, "rubric_version": "1.0",
+            })
+            db.set_score_override(aid, criterion_id, "product", override_score,
+                                  f"{rationale} {i}")
+
+    # Crosses both thresholds: 3 overrides, delta of 3 points.
+    _override_with_delta("CALIB-TEST-FLAGGED", median=4, override_score=1, n=3,
+                         rationale="big consistent correction")
+    # Big delta, but only 1 override — under CALIBRATION_MIN_OVERRIDES.
+    _override_with_delta("CALIB-TEST-TOO-FEW", median=4, override_score=1, n=1,
+                         rationale="one-off correction")
+    # Enough overrides, but a small delta — under CALIBRATION_AVG_DELTA_THRESHOLD.
+    _override_with_delta("CALIB-TEST-SMALL-DELTA", median=4, override_score=4, n=3,
+                         rationale="negligible correction")
+
+    stats = db.mode_a_reliability_stats()
+    by_id = {r["criterion_id"]: r for r in stats["by_criterion"]}
+
+    assert by_id["CALIB-TEST-FLAGGED"]["needs_calibration_review"] is True
+    assert "CALIB-TEST-FLAGGED" in stats["flagged_criteria"]
+
+    assert by_id["CALIB-TEST-TOO-FEW"]["needs_calibration_review"] is False
+    assert "CALIB-TEST-TOO-FEW" not in stats["flagged_criteria"]
+
+    assert by_id["CALIB-TEST-SMALL-DELTA"]["needs_calibration_review"] is False
+    assert "CALIB-TEST-SMALL-DELTA" not in stats["flagged_criteria"]
+
+
 def test_students_cannot_reach_research_surface(student_client):
     for path in ("/api/export/research.json", "/api/export/override-corpus",
                  "/api/admin/reliability", "/api/admin/users"):

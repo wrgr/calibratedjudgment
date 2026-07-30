@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../api/client';
 import { downloadJSON } from '../types';
+import type { ReliabilityStats } from '../types';
 
 type Tab = 'reliability' | 'users' | 'export';
 
@@ -44,32 +45,6 @@ export default function Admin() {
 
 /* ── Grading reliability dashboard (LLM vs instructor overrides) ───────────── */
 
-interface ReliabilityStats {
-  total: number;
-  needs_review: number;
-  overridden: number;
-  resolution_rate: number | null;
-  avg_override_delta: number | null;
-  by_criterion: {
-    criterion_id: string;
-    total: number;
-    needs_review: number;
-    overridden: number;
-    resolution_rate: number | null;
-    avg_delta: number | null;
-  }[];
-  recent: {
-    criterion_id: string;
-    channel: string;
-    median: number | null;
-    override_score: number;
-    override_rationale: string;
-    override_ts: string;
-    username: string;
-    assessment_name: string;
-  }[];
-}
-
 function Reliability() {
   const { data } = useQuery({
     queryKey: ['reliability'],
@@ -89,6 +64,11 @@ function Reliability() {
           value={data.avg_override_delta != null ? `${data.avg_override_delta} pts` : '—'}
           sub="high = the LLM is miscalibrated"
         />
+        <Tile
+          label="Needs calibration review"
+          value={String(data.flagged_criteria.length)}
+          sub="consistent, large LLM-vs-teacher gap"
+        />
       </div>
 
       <div className="card p-4">
@@ -106,8 +86,20 @@ function Reliability() {
           </thead>
           <tbody>
             {data.by_criterion.map((c, i) => (
-              <tr key={i} className="border-t" style={{ borderColor: 'var(--gridline)' }}>
-                <td className="font-data py-2 pr-2">{c.criterion_id}</td>
+              <tr
+                key={i}
+                className="border-t"
+                style={{
+                  borderColor: 'var(--gridline)',
+                  ...(c.needs_calibration_review ? { background: 'var(--div-mid)' } : {}),
+                }}
+              >
+                <td className="font-data py-2 pr-2">
+                  {c.needs_calibration_review && (
+                    <span title="Needs calibration review" style={{ color: 'var(--status-serious-text)' }}>⚑ </span>
+                  )}
+                  {c.criterion_id}
+                </td>
                 <td className="font-data py-2 pr-2">{c.total}</td>
                 <td className="font-data py-2 pr-2">{c.needs_review}</td>
                 <td className="font-data py-2 pr-2">{c.overridden}</td>
