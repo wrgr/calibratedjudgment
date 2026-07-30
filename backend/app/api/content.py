@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from .. import config
 from ..core import llm, security
 from ..db import database as db
+from ..services import llm_bridge
+from ..services.grading import calibration
 
 router = APIRouter(prefix="/api", tags=["content"])
 
@@ -92,6 +94,101 @@ def save_item(path_kind: str, content_id: str, body: SavePayload,
     db.upsert_content(kind, content_id, new_version, payload,
                       created_by=user["username"])
     return {"contentId": content_id, "version": new_version, "payload": payload}
+
+
+# ── Calibration drafts (idea #2: LLM-drafted teacherGuidance, staged only) ─────
+
+def _version_out(it: dict) -> dict:
+    return {
+        "contentId": it["content_id"],
+        "version": it["version"],
+        "createdBy": it["created_by"],
+        "createdAt": it["created_at"],
+        "active": it["active"],
+        "dismissed": it["dismissed"],
+        "payload": it.get("payload"),
+    }
+
+
+@router.get("/content/{path_kind}/{content_id}/drafts")
+def list_drafts(path_kind: str, content_id: str,
+                user: dict = Depends(security.require_staff)):
+    kind = _kind(path_kind)
+    return [_version_out(d) for d in db.list_pending_drafts(kind, content_id)]
+
+
+@router.post("/content/{path_kind}/{content_id}/criteria/{criterion_id}/draft-guidance")
+def draft_guidance(path_kind: str, content_id: str, criterion_id: str,
+                   user: dict = Depends(security.require_staff),
+                   override: dict | None = Depends(llm_bridge.llm_override)):
+    """Draft a proposed teacherGuidance replacement for one criterion from its
+    override history. Stages the result as an INACTIVE rubric version — it
+    never affects grading until explicitly published."""
+    kind = _kind(path_kind)
+    current = db.get_content(kind, content_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="Content not found.")
+    rubric = current["payload"]
+    criterion = next((c for c in rubric.get("criteria", [])
+                      if c["criterionId"] == criterion_id), None)
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found.")
+
+    override_rows = db.overrides_for_criterion(criterion_id)
+    if len(override_rows) < db.CALIBRATION_MIN_OVERRIDES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Need at least {db.CALIBRATION_MIN_OVERRIDES} overrides on this "
+                   f"criterion to draft guidance (have {len(override_rows)}).")
+
+    try:
+        llm_json = llm_bridge.make_llm_json(user, override)
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except llm_bridge.LLMNotConfigured as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    current_guidance = criterion.get("teacherGuidance") or ""
+    draft = calibration.draft_guidance(llm_json, criterion, current_guidance, override_rows)
+    if not draft or not calibration.validate_guidance_draft(draft):
+        raise HTTPException(status_code=422,
+                            detail="Could not generate a valid guidance draft for this criterion.")
+
+    payload = {**rubric, "criteria": [
+        {**c, "teacherGuidance": draft} if c["criterionId"] == criterion_id else c
+        for c in rubric.get("criteria", [])
+    ]}
+    new_version = bump_version(current["version"])
+    payload["version"] = new_version
+    db.upsert_content(kind, content_id, new_version, payload,
+                      created_by=user["username"], active=False)
+    return {"contentId": content_id, "version": new_version, "payload": payload}
+
+
+@router.post("/content/{path_kind}/{content_id}/versions/{version}/publish")
+def publish_version(path_kind: str, content_id: str, version: str,
+                    user: dict = Depends(security.require_staff)):
+    """Approve a staged draft: activate it, and deactivate whatever was
+    previously active, so exactly one version is ever active at a time."""
+    kind = _kind(path_kind)
+    target = db.get_content(kind, content_id, version)
+    if not target:
+        raise HTTPException(status_code=404, detail="Version not found.")
+    current = db.get_content(kind, content_id)
+    if current and current["version"] != version:
+        db.set_content_active(kind, content_id, current["version"], False)
+    db.set_content_active(kind, content_id, version, True)
+    return {"contentId": content_id, "version": version, "active": True}
+
+
+@router.post("/content/{path_kind}/{content_id}/versions/{version}/dismiss")
+def dismiss_version(path_kind: str, content_id: str, version: str,
+                    user: dict = Depends(security.require_staff)):
+    kind = _kind(path_kind)
+    if not db.get_content(kind, content_id, version):
+        raise HTTPException(status_code=404, detail="Version not found.")
+    db.dismiss_content_draft(kind, content_id, version)
+    return {"contentId": content_id, "version": version, "dismissed": True}
 
 
 # ── Provider / model info ─────────────────────────────────────────────────────

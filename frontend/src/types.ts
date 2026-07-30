@@ -152,6 +152,13 @@ export interface ContentItem<T = Record<string, unknown>> {
   payload: T;
 }
 
+/** A pending, staged (inactive) rubric version — idea #2's LLM-drafted
+ *  teacherGuidance patches. Never affects grading until published. */
+export interface ContentDraft<T = Record<string, unknown>> extends ContentItem<T> {
+  active: boolean;
+  dismissed: boolean;
+}
+
 export interface ReliabilityStats {
   total: number;
   needs_review: number;

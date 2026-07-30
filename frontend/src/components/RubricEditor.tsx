@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { api } from '../api/client';
-import type { ContentItem, Rubric } from '../types';
+import type { ContentDraft, ContentItem, Rubric } from '../types';
 import { downloadJSON } from '../types';
 
 /** Instructor rubric adaptation — ported from TGFWA RubricEditor.tsx. Every save
  *  goes through the content API, which bumps the version so scores are traceable
  *  to the rubric that produced them; the JSON export is diffable and citable. */
-export function RubricEditor({ item, flagged, onSaved }: {
+export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublishDraft,
+  onDismissDraft, onSaved }: {
   item: ContentItem<Rubric>;
   flagged?: Map<string, { avgDelta: number; overridden: number }>;
+  drafts?: ContentDraft<Rubric>[];
+  onDraftGuidance?: (criterionId: string) => void;
+  onPublishDraft?: (version: string) => void;
+  onDismissDraft?: (version: string) => void;
   onSaved: () => void;
 }) {
   const rubric = item.payload;
@@ -23,6 +28,20 @@ export function RubricEditor({ item, flagged, onSaved }: {
       return next;
     });
     setDirty(true);
+  }
+
+  // A "pending draft" for a criterion is any staged version whose payload
+  // proposes different teacherGuidance text for that criterion than the
+  // currently active rubric has — the draft-guidance endpoint only ever
+  // changes one criterion's teacherGuidance per version, so this is enough
+  // to identify which draft belongs to which criterion without a separate
+  // "target criterion" field.
+  function draftFor(criterionId: string) {
+    const current = rubric.criteria.find((c) => c.criterionId === criterionId)?.teacherGuidance ?? '';
+    return (drafts ?? []).find((d) => {
+      const proposed = d.payload.criteria.find((c) => c.criterionId === criterionId)?.teacherGuidance ?? '';
+      return proposed !== current;
+    });
   }
 
   async function save() {
@@ -75,6 +94,9 @@ export function RubricEditor({ item, flagged, onSaved }: {
 
       {draft.criteria.map((c, idx) => {
         const flag = flagged?.get(c.criterionId);
+        const pendingDraft = draftFor(c.criterionId);
+        const proposedGuidance = pendingDraft?.payload.criteria
+          .find((dc) => dc.criterionId === c.criterionId)?.teacherGuidance ?? '';
         return (
         <details key={c.criterionId} className="card p-4">
           <summary className="cursor-pointer text-sm">
@@ -89,6 +111,40 @@ export function RubricEditor({ item, flagged, onSaved }: {
             )}
           </summary>
           <div className="mt-3 space-y-2 text-sm">
+            {flag && !pendingDraft && onDraftGuidance && (
+              <button
+                className="rounded border px-2 py-1 text-xs font-medium"
+                style={{ borderColor: 'var(--gridline)' }}
+                onClick={() => onDraftGuidance(c.criterionId)}
+              >
+                Draft guidance suggestion from overrides
+              </button>
+            )}
+            {pendingDraft && (
+              <div className="rounded border p-2 text-xs" style={{ borderColor: 'var(--status-serious)' }}>
+                <div className="font-semibold" style={{ color: 'var(--status-serious-text)' }}>
+                  Suggested guidance (v{pendingDraft.version}) — not live until published
+                </div>
+                <div className="mt-1"><span className="font-medium">Current:</span> {c.teacherGuidance || <i>(none)</i>}</div>
+                <div className="mt-1"><span className="font-medium">Proposed:</span> {proposedGuidance}</div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="rounded px-2 py-1 font-medium text-white"
+                    style={{ background: 'var(--status-good-strong)' }}
+                    onClick={() => onPublishDraft?.(pendingDraft.version)}
+                  >
+                    Accept &amp; publish
+                  </button>
+                  <button
+                    className="rounded border px-2 py-1"
+                    style={{ borderColor: 'var(--gridline)' }}
+                    onClick={() => onDismissDraft?.(pendingDraft.version)}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
             <label className="block">
               <span className="text-xs font-medium">Statement (one observable behavior)</span>
               <textarea className="mt-1 w-full rounded border p-2 text-sm" style={{ borderColor: 'var(--gridline)' }} rows={2}

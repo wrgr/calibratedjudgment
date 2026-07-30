@@ -120,6 +120,7 @@ def init_db():
                 PRIMARY KEY (kind, content_id, version)
             )
         """)
+        _widen(c, "content_items", {"dismissed": "INTEGER NOT NULL DEFAULT 0"})
         c.execute("""
             CREATE TABLE IF NOT EXISTS assessments (
                 id              TEXT PRIMARY KEY,
@@ -444,11 +445,54 @@ def list_content(kind: str):
 def list_content_versions(kind: str, content_id: str):
     with _conn() as c:
         rows = c.execute(
-            "SELECT kind, content_id, version, created_by, created_at FROM content_items "
-            "WHERE kind=? AND content_id=? ORDER BY created_at DESC",
+            "SELECT kind, content_id, version, created_by, created_at, active, dismissed "
+            "FROM content_items WHERE kind=? AND content_id=? ORDER BY created_at DESC",
             (kind, content_id),
         ).fetchall()
-        return [dict(r) for r in rows]
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["active"] = bool(d["active"])
+            d["dismissed"] = bool(d["dismissed"])
+            out.append(d)
+        return out
+
+
+def set_content_active(kind: str, content_id: str, version: str, active: bool):
+    with _conn() as c:
+        c.execute(
+            "UPDATE content_items SET active=? WHERE kind=? AND content_id=? AND version=?",
+            (1 if active else 0, kind, content_id, version),
+        )
+        c.commit()
+
+
+def dismiss_content_draft(kind: str, content_id: str, version: str):
+    with _conn() as c:
+        c.execute(
+            "UPDATE content_items SET dismissed=1 WHERE kind=? AND content_id=? AND version=?",
+            (kind, content_id, version),
+        )
+        c.commit()
+
+
+def list_pending_drafts(kind: str, content_id: str):
+    """Inactive, not-yet-dismissed versions — proposed edits awaiting staff
+    approval (services/grading/calibration.py's draft-guidance flow)."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM content_items WHERE kind=? AND content_id=? "
+            "AND active=0 AND dismissed=0 ORDER BY created_at DESC",
+            (kind, content_id),
+        ).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["payload"] = json.loads(d["payload"])
+            d["active"] = bool(d["active"])
+            d["dismissed"] = bool(d["dismissed"])
+            out.append(d)
+        return out
 
 
 # ── Assessments spine ─────────────────────────────────────────────────────────
@@ -627,6 +671,20 @@ def override_corpus():
             "SELECT sr.*, a.username FROM score_records sr "
             "JOIN assessments a ON a.id = sr.assessment_id "
             "WHERE sr.override_ts != '' ORDER BY sr.override_ts"
+        ).fetchall()
+        return [_score_record_from_row(r) for r in rows]
+
+
+def overrides_for_criterion(criterion_id: str):
+    """Every overridden score record for ONE criterion — the input to a
+    calibration-guidance draft (services/grading/calibration.py). No join to
+    assessments: the draft only needs the LLM-vs-teacher correction pattern,
+    not student identity."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM score_records "
+            "WHERE override_ts != '' AND criterion_id = ? ORDER BY override_ts",
+            (criterion_id,),
         ).fetchall()
         return [_score_record_from_row(r) for r in rows]
 
