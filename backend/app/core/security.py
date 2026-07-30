@@ -24,7 +24,14 @@ from ..db import database as db
 COOKIE_NAME = "ap_session"
 
 # ── In-memory rate-limit store — keyed by client IP ───────────────────────────
-# Login brute-force protection only; fine to reset on restart.
+# Login brute-force protection only; fine to reset on restart. IMPORTANT:
+# this is per-process memory, not DB-backed. Under a single-process dev
+# deployment this is exactly right. Running with `uvicorn --workers N>1` (or
+# multiple instances behind a load balancer) gives each process its own
+# independent counter, so the effective limit becomes GENERAL_MAX/ADMIN_MAX
+# times N, and an attacker spreading requests across workers evades the
+# lockout entirely. A DB-backed limiter would be needed before scaling to
+# multiple worker processes.
 _rate: dict = {}
 
 WINDOW_SECS = 60

@@ -44,6 +44,16 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
     grading_style = user.get("grading_style", "")
     style_intensity = user.get("style_intensity") or molding.DEFAULT_INTENSITY
 
+    # Preserve instructor overrides across the regrade — delete_score_records
+    # below wipes every record for this assessment unconditionally, and a
+    # fresh grading pass has no way to know an override ever existed unless
+    # it's captured first and re-applied to whichever (criterion, channel)
+    # pairs still exist in the new result set.
+    preserved_overrides = {
+        (r["criterion_id"], r["channel"]): (r["override_score"], r["override_rationale"])
+        for r in db.get_score_records(assessment_id) if r["override_ts"]
+    }
+
     # Re-grade replaces prior records; the run stamps the current rubric version.
     db.delete_score_records(assessment_id)
     db.update_assessment(assessment_id, status="grading",
@@ -65,6 +75,13 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user),
                 on_progress=lambda done, _t, label: report(done, total, label),
                 on_result=on_result,
             )
+
+            # Re-apply any override whose (criterion, channel) still exists in
+            # the fresh result set; one that no longer exists (criterion
+            # removed/renamed in a newer rubric version) is silently dropped —
+            # set_score_override no-ops when nothing matches.
+            for (criterion_id, channel), (score, rationale) in preserved_overrides.items():
+                db.set_score_override(assessment_id, criterion_id, channel, score, rationale)
 
             def on_seg_progress(done, seg_total):
                 report(n_grading + done, total, f"reliance segment {done}/{seg_total}")

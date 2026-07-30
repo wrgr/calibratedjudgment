@@ -67,12 +67,6 @@ def get_item(path_kind: str, content_id: str, version: str = None,
     }
 
 
-@router.get("/content/{path_kind}/{content_id}/versions")
-def item_versions(path_kind: str, content_id: str,
-                  user: dict = Depends(security.require_staff)):
-    return db.list_content_versions(_kind(path_kind), content_id)
-
-
 class SavePayload(BaseModel):
     payload: dict
 
@@ -87,6 +81,7 @@ def save_item(path_kind: str, content_id: str, body: SavePayload,
 
     if current:
         new_version = bump_version(current["version"])
+        db.set_content_active(kind, content_id, current["version"], False)
     else:
         new_version = payload.get("version") or "1.0"
     payload["version"] = new_version

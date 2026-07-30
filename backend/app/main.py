@@ -19,6 +19,7 @@ def create_app() -> FastAPI:
     db.init_db()
     db.seed_default_users()
     seed_content.seed(verbose=False)
+    db.reconcile_orphaned_jobs()
 
     app.include_router(auth.router)
     app.include_router(content.router)

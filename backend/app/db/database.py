@@ -430,22 +430,6 @@ def list_content(kind: str):
         return list(latest.values())
 
 
-def list_content_versions(kind: str, content_id: str):
-    with _conn() as c:
-        rows = c.execute(
-            "SELECT kind, content_id, version, created_by, created_at, active, dismissed "
-            "FROM content_items WHERE kind=? AND content_id=? ORDER BY created_at DESC",
-            (kind, content_id),
-        ).fetchall()
-        out = []
-        for r in rows:
-            d = dict(r)
-            d["active"] = bool(d["active"])
-            d["dismissed"] = bool(d["dismissed"])
-            out.append(d)
-        return out
-
-
 def set_content_active(kind: str, content_id: str, version: str, active: bool):
     with _conn() as c:
         c.execute(
@@ -832,6 +816,28 @@ def get_job(job_id: str):
     with _conn() as c:
         row = c.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
         return dict(row) if row else None
+
+
+def reconcile_orphaned_jobs():
+    """Call once at process startup. A `jobs` row still 'running' cannot
+    actually be — the daemon thread that ran it (services/jobs.py) lived only
+    in the previous process's memory, so a server restart/crash leaves it
+    stuck forever with no heartbeat or timeout to catch it. Mark any such
+    jobs errored, and flip their linked assessment out of a stuck
+    'grading'/'in_progress' state too. Returns the number of jobs reconciled."""
+    with _conn() as c:
+        rows = c.execute("SELECT id, assessment_id FROM jobs WHERE status='running'").fetchall()
+        for row in rows:
+            c.execute(
+                "UPDATE jobs SET status='error', error=?, updated_at=? WHERE id=?",
+                ("Interrupted by server restart.", utcnow(), row["id"]),
+            )
+            c.execute(
+                "UPDATE assessments SET status='error' WHERE id=? AND status IN ('grading', 'in_progress')",
+                (row["assessment_id"],),
+            )
+        c.commit()
+        return len(rows)
 
 
 # ── Style-mold cache (attempt 5: per-criterion grading-style reconciliation

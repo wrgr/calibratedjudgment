@@ -72,8 +72,7 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
         </div>
         <p className="w-full text-xs" style={{ color: 'var(--ink-muted)' }}>
           Guidance below is injected verbatim into the grading prompts. Every score records the rubric version that
-          produced it, so a guidance edit → re-grade → changed score is fully reproducible. Earlier versions remain
-          retrievable from the version history.
+          produced it, so a guidance edit → re-grade → changed score is fully reproducible.
         </p>
         {error && <div role="alert" className="w-full text-xs" style={{ color: 'var(--status-critical)' }}>{error}</div>}
       </div>

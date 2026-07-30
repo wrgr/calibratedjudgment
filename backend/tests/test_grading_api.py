@@ -181,6 +181,27 @@ def test_failed_job_marks_assessment_error_not_stuck_grading(admin_client, monke
     assert detail["status"] == "error"
 
 
+def test_reconcile_orphaned_jobs_on_startup():
+    """A jobs row stuck at status='running' can't actually still be running
+    once a NEW process starts — the daemon thread that ran it lived only in
+    the previous process's memory. reconcile_orphaned_jobs (called from
+    main.py::create_app on every startup) must catch this and unstick both
+    the job and its linked assessment, rather than leaving them running/
+    grading forever with no recovery path."""
+    aid = db.create_assessment("admin", "essay_trace", status="grading")
+    job_id = db.create_job(aid, "grade_essay_trace", 10)
+    assert db.get_job(job_id)["status"] == "running"
+
+    n = db.reconcile_orphaned_jobs()
+    assert n >= 1
+
+    job = db.get_job(job_id)
+    assert job["status"] == "error"
+    assert job["error"] == "Interrupted by server restart."
+
+    assert db.get_assessment(aid)["status"] == "error"
+
+
 def test_sse_stream_replays_completed_job(admin_client, monkeypatch):
     fake = FakeLLM()
     monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
@@ -305,6 +326,47 @@ def test_grading_style_mold_cached_across_regrade(admin_client, monkeypatch):
     # Whether the LLM's *score* actually moves in response to a stated grading
     # style is a model-compliance question a hardcoded FakeLLM can't meaningfully
     # test — that remains a manual check against a live provider (see plan).
+
+
+def test_override_survives_regrade(admin_client, monkeypatch):
+    """delete_score_records (called on every regrade) used to wipe instructor
+    overrides unconditionally — grading.py now captures overridden records
+    before the delete and re-applies them once the fresh records exist."""
+    fake = FakeLLM()
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
+
+    def grade_and_wait():
+        r = admin_client.post("/api/assessments/exemplar-jordan/grade",
+                              headers={"X-Requested-With": "fetch"})
+        assert r.status_code == 200, r.text
+        job_id = r.json()["jobId"]
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            job = admin_client.get(f"/api/jobs/{job_id}").json()
+            if job["status"] != "running":
+                break
+            time.sleep(0.2)
+        assert job["status"] == "done", job
+
+    grade_and_wait()
+    detail = admin_client.get("/api/assessments/exemplar-jordan").json()
+    product_score = next(s for s in detail["scores"] if s["channel"] == "product")
+
+    r = admin_client.post(
+        "/api/assessments/exemplar-jordan/override",
+        json={"criterionId": product_score["criterionId"], "channel": "product",
+              "score": 0, "rationale": "Regrade-preserves-override smoke test."},
+        headers={"X-Requested-With": "fetch"})
+    assert r.status_code == 200, r.text
+
+    grade_and_wait()
+
+    detail2 = admin_client.get("/api/assessments/exemplar-jordan").json()
+    overridden = next(s for s in detail2["scores"]
+                      if s["criterionId"] == product_score["criterionId"] and s["channel"] == "product")
+    assert overridden["teacherOverride"] is not None, "override should survive a regrade"
+    assert overridden["teacherOverride"]["score"] == 0
+    assert overridden["teacherOverride"]["rationale"] == "Regrade-preserves-override smoke test."
 
 
 def test_style_intensity_prefs_round_trip(admin_client):

@@ -25,6 +25,13 @@ def test_edit_bumps_version(admin_client):
     )
     assert old.status_code == 200
 
+    # the superseded version is deactivated — content_items.active is now a
+    # real "exactly one active version" invariant, not just a tie-break on
+    # created_at
+    from app.db import database as db
+    assert db.get_content("rubric", target["contentId"], before)["active"] == 0
+    assert db.get_content("rubric", target["contentId"], after)["active"] == 1
+
 
 def test_students_cannot_edit_content(student_client):
     r = student_client.put(
@@ -135,11 +142,11 @@ def test_publish_activates_draft_and_deactivates_prior_version(admin_client, mon
     # The version publish specifically superseded is deactivated (save_item's
     # plain-edit path doesn't maintain a stricter "only one active row ever"
     # invariant elsewhere, so this only asserts what publish itself guarantees).
-    versions = admin_client.get(f"/api/content/rubrics/{CONTENT_ID}/versions").json()
-    published = next(v for v in versions if v["version"] == draft["version"])
-    assert published["active"] is True
-    old = next(v for v in versions if v["version"] == current["version"])
-    assert old["active"] is False
+    from app.db import database as db
+    published = db.get_content("rubric", CONTENT_ID, draft["version"])
+    assert bool(published["active"]) is True
+    old = db.get_content("rubric", CONTENT_ID, current["version"])
+    assert bool(old["active"]) is False
 
 
 def test_dismiss_hides_draft_without_deleting_it(admin_client, monkeypatch):
