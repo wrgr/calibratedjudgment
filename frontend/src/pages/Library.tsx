@@ -64,15 +64,17 @@ export default function Library() {
       </header>
 
       {rubric ? (
-        <RubricEditor
-          item={rubric}
-          flagged={flagged}
-          drafts={drafts}
-          onDraftGuidance={(criterionId) => void draftGuidance(criterionId)}
-          onPublishDraft={(version) => void publishDraft(version)}
-          onDismissDraft={(version) => void dismissDraft(version)}
-          onSaved={invalidate}
-        />
+        <div data-tour="library-rubric">
+          <RubricEditor
+            item={rubric}
+            flagged={flagged}
+            drafts={drafts}
+            onDraftGuidance={(criterionId) => void draftGuidance(criterionId)}
+            onPublishDraft={(version) => void publishDraft(version)}
+            onDismissDraft={(version) => void dismissDraft(version)}
+            onSaved={invalidate}
+          />
+        </div>
       ) : (
         <div className="card p-8 text-center text-sm" style={{ color: 'var(--ink-muted)' }}>No rubrics seeded.</div>
       )}

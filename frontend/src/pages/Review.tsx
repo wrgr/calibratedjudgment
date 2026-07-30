@@ -44,7 +44,7 @@ export default function Review() {
           Nothing waiting — all routed items have been resolved.
         </div>
       ) : (
-        <div className="card divide-y" style={{ borderColor: 'var(--gridline)' }}>
+        <div data-tour="review-queue" className="card divide-y" style={{ borderColor: 'var(--gridline)' }}>
           {pending.map((r) => (
             <button key={keyOf(r)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02]" onClick={() => setOpenKey(keyOf(r))}>
               <span className="font-data shrink-0 text-xs font-semibold">{r.criterionId}</span>

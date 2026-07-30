@@ -48,7 +48,7 @@ export function Dashboard({ assessment, rubric, onChanged }: {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div data-tour="dash-tiles" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile label="Trace-inferred mastery" value={traceOverall} accent="var(--series-trace)" sub="from the dialogue" />
         <Tile label="Product score" value={productOverall} accent="var(--series-product)" sub="from the final essay" />
         <Tile
@@ -96,10 +96,11 @@ export function Dashboard({ assessment, rubric, onChanged }: {
             </span>
           </div>
         </div>
-        <div>
-          {dims.map((d) => (
+        <div data-tour="dash-dimensions">
+          {dims.map((d, di) => (
             <button
               key={d.dimension}
+              {...(di === 0 ? { 'data-tour': 'dash-dim-row' } : {})}
               className="grid w-full grid-cols-[9rem_1fr_4.5rem_1rem] items-center gap-3 rounded-sm px-2 py-2.5 text-left hover:bg-black/[0.03]"
               onClick={() => setOpenDim(d)}
               title="Open evidence for this dimension"
@@ -138,11 +139,11 @@ export function Dashboard({ assessment, rubric, onChanged }: {
             </div>
             {rubric.criteria
               .filter((c) => openDim.criterionIds.includes(c.criterionId))
-              .map((c) => {
+              .map((c, ci) => {
                 const trace = scores.find((r) => r.criterionId === c.criterionId && r.channel === 'trace');
                 const product = scores.find((r) => r.criterionId === c.criterionId && r.channel === 'product');
                 return (
-                  <div key={c.criterionId}>
+                  <div key={c.criterionId} {...(ci === 0 ? { 'data-tour': 'dash-criterion' } : {})}>
                     <div className="mb-1.5 text-sm">
                       <span className="font-data text-xs font-semibold">{c.criterionId}</span>{' '}
                       {c.referenceability === 'weak' && (

@@ -96,6 +96,7 @@ export default function SessionDetail() {
             {assessment.gradedLive ? 'graded live' : assessment.isExemplar ? 'bundled demo scores' : 'ungraded'} · rubric v{assessment.contentVersion || rubricItem?.version}
           </span>
           <button
+            data-tour="session-grade"
             className="rounded-sm px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
             style={{ background: 'var(--accent)' }}
             disabled={progress !== null}
@@ -107,7 +108,7 @@ export default function SessionDetail() {
         </div>
       </header>
 
-      <nav className="mb-4 flex gap-1 text-xs" aria-label="Session views">
+      <nav data-tour="session-tabs" className="mb-4 flex gap-1 text-xs" aria-label="Session views">
         {(['dashboard', 'layerb'] as Tab[]).map((t) => (
           <button
             key={t}

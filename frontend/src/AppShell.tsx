@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { isStaff, useAuth } from './auth';
+import { TourProvider } from './components/Tour';
 
 interface NavItem {
   to: string;
@@ -37,6 +38,7 @@ export default function AppShell() {
   );
 
   return (
+    <TourProvider>
     <div className="flex min-h-screen">
       <aside
         className="sticky top-0 flex h-screen w-60 shrink-0 flex-col px-4 py-5 max-md:hidden"
@@ -51,7 +53,7 @@ export default function AppShell() {
           Competence from process and product — essay traces with AI reliance.
         </div>
 
-        <nav className="mt-6 flex flex-col gap-0.5" aria-label="Primary">
+        <nav data-tour="nav" className="mt-6 flex flex-col gap-0.5" aria-label="Primary">
           {nav.map((t) => (
             <NavLink
               key={t.to}
@@ -101,7 +103,7 @@ export default function AppShell() {
 
       <main className="min-w-0 flex-1 px-5 pb-16 pt-5 md:px-8">
         {/* mobile nav (the rail is hidden below md) */}
-        <nav className="mb-4 flex flex-wrap gap-1 md:hidden" aria-label="Primary">
+        <nav data-tour="nav" className="mb-4 flex flex-wrap gap-1 md:hidden" aria-label="Primary">
           {nav.map((t) => (
             <NavLink
               key={t.to}
@@ -121,5 +123,6 @@ export default function AppShell() {
         <Outlet />
       </main>
     </div>
+    </TourProvider>
   );
 }

@@ -59,6 +59,7 @@ export function EvidenceTrail({ record, criterion, assessmentId, onChanged, star
   return (
     <div className="rounded border p-2 text-xs" style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}>
       <button
+        data-tour="dash-evidence-toggle"
         className="flex w-full items-center justify-between gap-2"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -92,7 +93,7 @@ export function EvidenceTrail({ record, criterion, assessmentId, onChanged, star
       </button>
 
       {open && (
-        <div className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: 'var(--gridline)' }}>
+        <div data-tour="dash-evidence" className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: 'var(--gridline)' }}>
           <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: 'var(--ink-secondary)' }}>
             <span>passes: <b className="tabular">{record.passes.map((p) => (p === 'no-evidence' ? 'ø' : p)).join(' · ')}</b></span>
             {record.median !== null && <span>median: <b className="tabular">{record.median}</b></span>}

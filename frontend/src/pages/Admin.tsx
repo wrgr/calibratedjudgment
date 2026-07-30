@@ -10,7 +10,7 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('reliability');
 
   return (
-    <div>
+    <div data-tour="admin-page">
       <header className="mb-5 border-b pb-4" style={{ borderColor: 'var(--gridline)' }}>
         <div className="kicker">Users · reliability · research export</div>
         <h1 className="font-display mt-0.5 text-[1.7rem] leading-tight" style={{ fontWeight: 560 }}>

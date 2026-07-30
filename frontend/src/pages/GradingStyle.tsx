@@ -54,6 +54,7 @@ export default function GradingStyle() {
             model says it applied (or didn't apply) this to a specific score.
           </p>
           <textarea
+            data-tour="grading-style-text"
             className="mt-3 w-full rounded-sm border p-2 text-sm"
             style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)', minHeight: '6rem' }}
             placeholder="e.g. I weight clarity of argument over polish; I'm lenient on mechanics for early drafts."

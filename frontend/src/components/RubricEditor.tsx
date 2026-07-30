@@ -57,13 +57,13 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
 
   return (
     <div className="space-y-4">
-      <div className="card flex flex-wrap items-center gap-3 p-4 text-sm">
+      <div data-tour="rubric-header" className="card flex flex-wrap items-center gap-3 p-4 text-sm">
         <div>
           <b>{draft.rubricId}</b> · current version <b>v{item.version}</b>
           {dirty && <span style={{ color: 'var(--status-serious)' }}> · unsaved edits → will save as a new bumped version</span>}
         </div>
         <div className="ml-auto flex gap-2">
-          <button className="rounded px-3 py-1.5 font-medium text-white disabled:opacity-40" style={{ background: 'var(--series-trace)' }} disabled={!dirty} onClick={() => void save()}>
+          <button data-tour="rubric-save" className="rounded px-3 py-1.5 font-medium text-white disabled:opacity-40" style={{ background: 'var(--series-trace)' }} disabled={!dirty} onClick={() => void save()}>
             Save as new version
           </button>
           <button className="rounded border px-3 py-1.5" style={{ borderColor: 'var(--gridline)' }} onClick={() => downloadJSON(`${draft.rubricId}-v${item.version}.json`, rubric)}>
@@ -77,7 +77,7 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
         {error && <div role="alert" className="w-full text-xs" style={{ color: 'var(--status-critical)' }}>{error}</div>}
       </div>
 
-      <div className="card p-4">
+      <div data-tour="rubric-assignment-guidance" className="card p-4">
         <label className="block text-sm">
           <span className="font-semibold">Assignment-level guidance (injected into every grading call)</span>
           <textarea
@@ -97,7 +97,7 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
         const proposedGuidance = pendingDraft?.payload.criteria
           .find((dc) => dc.criterionId === c.criterionId)?.teacherGuidance ?? '';
         return (
-        <details key={c.criterionId} className="card p-4">
+        <details key={c.criterionId} {...(idx === 0 ? { 'data-tour': 'rubric-criterion' } : {})} className="card p-4">
           <summary className="cursor-pointer text-sm">
             <b>{c.criterionId}</b> <span style={{ color: 'var(--ink-muted)' }}>({c.standard} · {c.referenceability === 'weak' ? 'teacher-reserve' : 'auto-gradable'})</span> — {c.statement}
             {flag && (
@@ -112,6 +112,7 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
           <div className="mt-3 space-y-2 text-sm">
             {flag && !pendingDraft && onDraftGuidance && (
               <button
+                data-tour="rubric-miscalibrated"
                 className="rounded border px-2 py-1 text-xs font-medium"
                 style={{ borderColor: 'var(--gridline)' }}
                 onClick={() => onDraftGuidance(c.criterionId)}
@@ -150,13 +151,13 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
                 value={c.statement}
                 onChange={(e) => mutate((r) => { r.criteria[idx].statement = e.target.value; })} />
             </label>
-            <label className="block">
+            <label {...(idx === 0 ? { 'data-tour': 'rubric-guidance' } : {})} className="block">
               <span className="text-xs font-medium">Criterion guidance (injected into this criterion's prompts)</span>
               <textarea className="mt-1 w-full rounded border p-2 text-sm" style={{ borderColor: 'var(--gridline)' }} rows={2}
                 value={c.teacherGuidance ?? ''}
                 onChange={(e) => mutate((r) => { r.criteria[idx].teacherGuidance = e.target.value; })} />
             </label>
-            <div className="grid gap-2 md:grid-cols-2">
+            <div {...(idx === 0 ? { 'data-tour': 'rubric-anchors' } : {})} className="grid gap-2 md:grid-cols-2">
               {Object.keys(c.anchors).sort().map((level) => (
                 <label key={level} className="block">
                   <span className="text-xs font-medium">Level {level}</span>
@@ -166,7 +167,7 @@ export function RubricEditor({ item, flagged, drafts, onDraftGuidance, onPublish
                 </label>
               ))}
             </div>
-            <label className="flex items-center gap-2 text-xs">
+            <label {...(idx === 0 ? { 'data-tour': 'rubric-reserve' } : {})} className="flex items-center gap-2 text-xs">
               <input type="checkbox" checked={c.referenceability === 'weak'}
                 onChange={(e) => mutate((r) => { r.criteria[idx].referenceability = e.target.checked ? 'weak' : 'strong'; })} />
               Teacher-reserve (LLM score advisory-only, always routed to the judgment queue)

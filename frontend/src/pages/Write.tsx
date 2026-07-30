@@ -72,7 +72,7 @@ export default function Write() {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <div className="card flex h-[36rem] flex-col p-4">
+        <div data-tour="write-chat" className="card flex h-[36rem] flex-col p-4">
           <h2 className="text-sm font-semibold">Simulated writing session</h2>
           <p className="mb-2 text-xs" style={{ color: 'var(--ink-secondary)' }}>
             Work with the AI as a student would — every turn here becomes the dialogue trace that Channel T grades.
@@ -121,7 +121,7 @@ export default function Write() {
           </div>
         </div>
 
-        <div className="card flex h-[36rem] flex-col p-4">
+        <div data-tour="write-essay" className="card flex h-[36rem] flex-col p-4">
           <h2 className="text-sm font-semibold">Final essay</h2>
           <p className="mb-2 text-xs" style={{ color: 'var(--ink-secondary)' }}>
             Paste (or write) the final essay this session produced — Channel P grades this text.

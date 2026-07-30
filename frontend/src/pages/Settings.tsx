@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { api, clearByoKey, loadByoKey, saveByoKey } from '../api/client';
 import { useAuth } from '../auth';
 import type { User } from '../auth';
+import { useTour } from '../components/Tour';
 
 interface ProviderInfo {
   name: string;
@@ -21,6 +22,7 @@ export default function Settings() {
   const [provider, setProvider] = useState(user?.preferredProvider ?? '');
   const [model, setModel] = useState(user?.preferredModel ?? '');
   const [saved, setSaved] = useState(false);
+  const { start: startTour } = useTour();
 
   const providers = data?.providers ?? [];
   const configured = providers.filter((p) => p.configured);
@@ -47,6 +49,25 @@ export default function Settings() {
 
       <div className="space-y-4">
         <div className="card max-w-xl p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="panel-title">New here?</div>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+                A guided walkthrough of every screen — what each button does and what each box expects.
+                It highlights the real controls as it goes. Leave any time with Esc.
+              </p>
+            </div>
+            <button
+              onClick={startTour}
+              className="shrink-0 rounded-sm px-4 py-2 text-sm font-semibold text-white"
+              style={{ background: 'var(--accent)' }}
+            >
+              Take the tour
+            </button>
+          </div>
+        </div>
+
+        <div data-tour="settings-server" className="card max-w-xl p-5">
           <div className="panel-title">Server LLM preferences</div>
           <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
             Server-configured API keys are the default for grading. Only providers with a key in the
@@ -119,6 +140,7 @@ export default function Settings() {
 
         <ByoKeyCard providers={providers} defaultProvider={data?.default ?? ''} />
       </div>
+
     </div>
   );
 }
@@ -191,7 +213,7 @@ function ByoKeyCard({ providers, defaultProvider }: {
   const toneColor = { ok: 'var(--status-good-strong)', bad: 'var(--status-critical)', info: 'var(--ink-muted)' };
 
   return (
-    <div className="card max-w-xl p-5">
+    <div data-tour="settings-byo" className="card max-w-xl p-5">
       <div className="flex items-baseline justify-between gap-2">
         <div className="panel-title">Use your own API key (optional)</div>
         {active && (

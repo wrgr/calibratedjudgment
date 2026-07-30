@@ -40,6 +40,7 @@ export default function Home() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <button
+          data-tour="home-import"
           className="rounded-sm px-3 py-1.5 font-medium text-white"
           style={{ background: 'var(--accent)' }}
           onClick={() => setShowImport(true)}
@@ -55,7 +56,7 @@ export default function Home() {
         const items = byMode(mode);
         if (!items.length) return null;
         return (
-          <section key={mode} className="mb-6">
+          <section key={mode} data-tour="home-sessions" className="mb-6">
             <h2 className="kicker mb-2">{MODE_LABEL[mode]}</h2>
             <div className="grid gap-3 md:grid-cols-2">
               {items.map((a) => (
