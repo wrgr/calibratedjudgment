@@ -167,7 +167,7 @@ def get_or_mold_notes(llm_json, *, content_id: str, version: str, rubric: dict,
 
     notes = mold_notes(llm_json, rubric, style, intensity)
     if not validate_mold(notes, eligible):
-        notes = {}  # fail open: no style effect this run, not a crash
+        return {}  # fail open, but don't cache a failure as if it were a real result
 
     db.set_style_mold(cache_key, content_id, version, style_hash, notes)
     return notes

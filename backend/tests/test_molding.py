@@ -140,23 +140,30 @@ def test_get_or_mold_notes_cache_key_sensitive_to_style_text_and_version():
     assert calls["n"] == 3
 
 
-def test_get_or_mold_notes_caches_validation_failure_as_empty():
+def test_get_or_mold_notes_retries_after_validation_failure():
+    """A validate_mold() failure (as opposed to mold_notes' own filtering) must
+    NOT be cached — otherwise one bad LLM response permanently suppresses
+    style molding for that rubric/style/intensity until the instructor edits
+    their style text, since nothing else changes the cache key."""
     rubric = _rubric()
     calls = {"n": 0}
 
     def bad_llm(system, prompt):
         calls["n"] += 1
-        return {"notes": [{"criterionId": "W1a-1", "note": "sneaky"}]}  # filtered to {} by mold_notes,
-        # but exercise the validate_mold() path too via a rewrite-fingerprint case below
+        # Eligible criterion id + non-empty note, so it survives mold_notes'
+        # filtering intact — but the "ANCHORED LEVELS" fingerprint makes it
+        # fail validate_mold's anti-rewrite check.
+        return {"notes": [{"criterionId": "W1d-1",
+                           "note": "See ANCHORED LEVELS above for guidance."}]}
 
     result = molding.get_or_mold_notes(bad_llm, content_id="test-rubric-3", version="1.0",
                                        rubric=rubric, grading_style="be lenient")
     assert result == {}
-    # Second call within the same cache key must not re-invoke the LLM.
+    # A validation failure isn't cached, so the second call must re-invoke the LLM.
     result2 = molding.get_or_mold_notes(bad_llm, content_id="test-rubric-3", version="1.0",
                                         rubric=rubric, grading_style="be lenient")
     assert result2 == {}
-    assert calls["n"] == 1
+    assert calls["n"] == 2
 
 
 # ---- Attempt 6: intensity slider ----
