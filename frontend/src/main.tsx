@@ -10,6 +10,7 @@ import AppShell from './AppShell';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
+import GradingStyle from './pages/GradingStyle';
 import SessionDetail from './pages/SessionDetail';
 import Review from './pages/Review';
 import Write from './pages/Write';
@@ -29,6 +30,7 @@ const router = createHashRouter([
     children: [
       { path: '/', element: <Home /> },
       { path: '/settings', element: <Settings /> },
+      { path: '/grading-style', element: <GradingStyle /> },
       { path: '/sessions/:id', element: <SessionDetail /> },
       { path: '/review', element: <Review /> },
       { path: '/write', element: <Write /> },

@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { to: '/write', label: 'Writing Session', caption: 'live chat → gradeable trace' },
   { to: '/library', label: 'Library', caption: 'rubrics · authoring', staffOnly: true },
   { to: '/admin', label: 'Admin', caption: 'users · reliability · export', adminOnly: true },
+  { to: '/grading-style', label: 'Grading Style', caption: 'style · intensity', staffOnly: true },
   { to: '/settings', label: 'Settings', caption: 'provider · model · account' },
 ];
 
