@@ -38,8 +38,7 @@ def test_key_from_either_env_var(monkeypatch):
 
 def test_selectable_once_keyed(monkeypatch):
     monkeypatch.setitem(config.PROVIDERS[TAMU], "api_key", FAKE_KEY)
-    names = [p["name"] for p in llm.get_configured_providers(config.PROVIDERS)]
-    assert TAMU in names
+    assert llm.llm_is_available(config.PROVIDERS[TAMU]["api_key"])
 
     user = {"username": "emma", "preferred_provider": TAMU, "preferred_model": ""}
     name, model, cfg = llm_bridge.resolve_for_user(user)

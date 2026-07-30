@@ -232,7 +232,7 @@ function Bar({ value, color }: { value: number | null; color: string }) {
   );
 }
 
-export function DivergenceChip({ value }: { value: number | null }) {
+function DivergenceChip({ value }: { value: number | null }) {
   if (value === null)
     return <span className="rounded-sm px-2 py-0.5 text-center text-[11px]" style={{ background: 'var(--div-mid)', color: 'var(--ink-secondary)' }}>n/a</span>;
   const mag = Math.abs(value);

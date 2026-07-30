@@ -3,14 +3,11 @@ llm.py — LLM provider dispatch and response parsing.
 
 Ported near-verbatim from Performative_Assessment_V5 (assessmentRework branch).
 Platform changes: API keys come exclusively from server-side configuration
-(app.config, which reads the environment) and the determinism cache lives in
-app.db.database.
+(app.config, which reads the environment).
 """
 
-import hashlib
 import json
 import logging
-import os
 import re
 import socket
 import time
@@ -255,12 +252,6 @@ def validate_api_key(provider_name, api_key, model, base_url):
         return False, f"{headline}: {detail}" if detail else headline
     except Exception:
         return False, "Cannot connect to provider"
-
-
-def get_configured_providers(providers):
-    return [{"name": name, "model": cfg["model"]}
-            for name, cfg in providers.items()
-            if llm_is_available(cfg["api_key"])]
 
 
 def get_available_models(provider_name, provider_cfg):
@@ -659,11 +650,6 @@ def _with_retry(fn, *args, **kwargs):
             raise
 
 
-def llm_generate(model, prompt, api_key, base_url):
-    # One-sentence narration — thinking mode disabled so reasoning models respond directly.
-    return _call_llm(model, api_key, base_url, 512, "", prompt, think=False)
-
-
 def llm_chat(model, system, message, api_key, base_url, temperature=None, seed=None):
     # Full structured response — used for evaluation and report generation.
     # think=False prevents thinking models from spending their token budget on
@@ -682,71 +668,3 @@ def llm_chat_json(model, system, message, api_key, base_url, temperature=None, s
                        temperature=temperature, seed=seed)
 
 
-def clip(text, max_chars=8000):
-    """Truncate long text so the prompt fits within the model's context window."""
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars] + "\n... [truncated for length]"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DETERMINISTIC RESPONSE CACHING (Part B)
-#
-# This cache is a determinism/testing aid, not a performance optimization --
-# its purpose is reproducibility (identical inputs -> identical cached output
-# without even re-invoking the model), and it should not be relied on as a
-# cost-saving layer in a way that could mask a real prompt or scoring change.
-# ─────────────────────────────────────────────────────────────────────────────
-
-_cache_unavailable_warned = False
-
-
-def _warn_cache_unavailable(exc):
-    global _cache_unavailable_warned
-    if not _cache_unavailable_warned:
-        logger.warning("[llm] eval cache unavailable (%s) -- falling back to uncached calls", exc)
-        _cache_unavailable_warned = True
-
-
-def _eval_cache_key(model, base_url, prompt_version, system, prompt):
-    """Stable hash over the exact text sent to the model, not a loosely-normalized version --
-    so any prompt change (reflected via prompt_version, or the text itself) invalidates old entries."""
-    payload = "\x1f".join([model, base_url, prompt_version, system or "", prompt])
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
-def cached_evaluative_call(model, base_url, prompt_version, system, prompt, call_fn, bypass_cache=False):
-    """Run call_fn() (a zero-arg callable that performs the actual evaluative LLM call and
-    returns a JSON-serializable result) through the on-disk determinism cache.
-
-    Cache key covers model, base_url, prompt_version, and the exact system/user prompt text.
-    Bypass with bypass_cache=True or the DISABLE_EVAL_CACHE=1 environment variable (e.g. for
-    a legitimate re-grade after fixing a scoring bug, without clearing the whole cache table).
-    Fails open (skips caching, calls the LLM directly) if the cache table is unavailable.
-    """
-    if bypass_cache or os.environ.get("DISABLE_EVAL_CACHE") == "1":
-        return call_fn()
-
-    try:
-        from ..db import database  # local import: avoids a hard dependency for callers that never cache
-    except Exception as e:
-        _warn_cache_unavailable(e)
-        return call_fn()
-
-    key = _eval_cache_key(model, base_url, prompt_version, system, prompt)
-    try:
-        cached = database.eval_cache_get(key)
-    except Exception as e:
-        _warn_cache_unavailable(e)
-        return call_fn()
-
-    if cached is not None:
-        logger.debug("[llm] eval cache hit key=%s...", key[:12])
-        return json.loads(cached)
-
-    result = call_fn()
-    try:
-        database.eval_cache_set(key, json.dumps(result))
-    except Exception as e:
-        _warn_cache_unavailable(e)
-    return result

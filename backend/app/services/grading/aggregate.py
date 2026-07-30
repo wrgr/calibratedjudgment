@@ -16,7 +16,7 @@ def median(nums):
 
 
 def aggregate_passes(*, criterion_id: str, channel: str, referenceability: str,
-                     passes: list, rubric_version: str, style_hash: str = "",
+                     passes: list, rubric_version: str,
                      style_note: str = "", style_intensity: str = "") -> dict:
     """passes: list of dicts {score: int|'no-evidence', selfConfidence, evidence, anchorMatched}.
 

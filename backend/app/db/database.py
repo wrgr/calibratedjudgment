@@ -203,13 +203,6 @@ def init_db():
             )
         """)
         c.execute("""
-            CREATE TABLE IF NOT EXISTS llm_eval_cache (
-                key        TEXT PRIMARY KEY,
-                response   TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
-        c.execute("""
             CREATE TABLE IF NOT EXISTS style_molds (
                 cache_key  TEXT PRIMARY KEY,
                 content_id TEXT NOT NULL,
@@ -848,37 +841,6 @@ def get_job(job_id: str):
     with _conn() as c:
         row = c.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
         return dict(row) if row else None
-
-
-# ── LLM evaluative-call cache ─────────────────────────────────────────────────
-# Determinism/testing aid only (see core.llm.cached_evaluative_call) -- not a
-# cost-saving cache. Identical (model, base_url, prompt_version, prompt) input
-# always returns the same stored response, so repeated test runs stay reproducible.
-
-_EVAL_CACHE_MAX_ROWS = 2000
-
-
-def eval_cache_get(key: str):
-    with _conn() as c:
-        row = c.execute("SELECT response FROM llm_eval_cache WHERE key=?", (key,)).fetchone()
-        return row["response"] if row else None
-
-
-def eval_cache_set(key: str, response: str):
-    with _conn() as c:
-        c.execute(
-            "INSERT OR REPLACE INTO llm_eval_cache (key, response, created_at) "
-            "VALUES (?, ?, datetime('now'))",
-            (key, response),
-        )
-        excess = c.execute("SELECT COUNT(*) FROM llm_eval_cache").fetchone()[0] - _EVAL_CACHE_MAX_ROWS
-        if excess > 0:
-            c.execute(
-                "DELETE FROM llm_eval_cache WHERE key IN ("
-                "  SELECT key FROM llm_eval_cache ORDER BY created_at ASC, key ASC LIMIT ?)",
-                (excess,),
-            )
-        c.commit()
 
 
 # ── Style-mold cache (attempt 5: per-criterion grading-style reconciliation

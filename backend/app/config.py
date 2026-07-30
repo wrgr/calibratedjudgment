@@ -4,8 +4,8 @@ Provider configuration — server-side only.
 Ported from Performative_Assessment_V5 config.py; the hardcoded key
 placeholders are replaced by environment variables (loaded from a repo-root
 .env when present), so keys never live in source or reach the browser.
-Providers without a configured key are hidden from in-app pickers
-automatically (see core.llm.get_configured_providers).
+Providers without a configured key are flagged unconfigured to the frontend
+(see api/content.py's `providers` route and core.llm.llm_is_available).
 """
 
 import os

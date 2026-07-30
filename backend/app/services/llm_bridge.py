@@ -101,11 +101,3 @@ def make_llm_chat(user: dict, override: dict | None = None):
         return llm.llm_chat(model, system, message, cfg["api_key"], cfg["base_url"])
 
     return llm_chat
-
-
-def is_configured(user: dict, override: dict | None = None) -> bool:
-    try:
-        resolve_for_user(user, override)
-        return True
-    except (LLMNotConfigured, UnknownProvider):
-        return False
