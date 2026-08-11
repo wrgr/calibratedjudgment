@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { api } from '../api/client';
 import { downloadJSON } from '../types';
 import type { ReliabilityStats } from '../types';
+import { isStatic } from '../local/mode';
 
 type Tab = 'reliability' | 'users' | 'export';
 
@@ -239,6 +240,28 @@ function Users() {
 
 /* ── Research export ───────────────────────────────────────────────────────── */
 
+/** Static build: build the CSV in the browser from the JSON export rows. */
+async function downloadResearchCsv() {
+  const rows = await api.get<Record<string, unknown>[]>('/api/export/research.json');
+  if (!rows.length) {
+    downloadJSON('research.csv', []);
+    return;
+  }
+  const cols = Object.keys(rows[0]);
+  const esc = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'research.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function Export() {
   return (
     <div className="card max-w-xl p-5 text-sm">
@@ -247,12 +270,33 @@ function Export() {
         One row per graded essay+trace assessment; see <span className="font-data">docs/research_export_data_dictionary.md</span>.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <a className="rounded-sm px-3 py-2 font-medium text-white" style={{ background: 'var(--accent)' }} href="/api/export/research.csv">
-          Download CSV
-        </a>
-        <a className="rounded-sm border px-3 py-2" style={{ borderColor: 'var(--gridline)' }} href="/api/export/research.json" target="_blank" rel="noreferrer">
-          View JSON
-        </a>
+        {isStatic() ? (
+          <>
+            <button
+              className="rounded-sm px-3 py-2 font-medium text-white"
+              style={{ background: 'var(--accent)' }}
+              onClick={() => void downloadResearchCsv()}
+            >
+              Download CSV
+            </button>
+            <button
+              className="rounded-sm border px-3 py-2"
+              style={{ borderColor: 'var(--gridline)' }}
+              onClick={() => void api.get('/api/export/research.json').then((d) => downloadJSON('research.json', d))}
+            >
+              Download JSON
+            </button>
+          </>
+        ) : (
+          <>
+            <a className="rounded-sm px-3 py-2 font-medium text-white" style={{ background: 'var(--accent)' }} href="/api/export/research.csv">
+              Download CSV
+            </a>
+            <a className="rounded-sm border px-3 py-2" style={{ borderColor: 'var(--gridline)' }} href="/api/export/research.json" target="_blank" rel="noreferrer">
+              View JSON
+            </a>
+          </>
+        )}
         <button
           className="rounded-sm border px-3 py-2"
           style={{ borderColor: 'var(--gridline)' }}

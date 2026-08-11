@@ -16,7 +16,10 @@ export interface User {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  // `role` is only honoured by the static (backend-free) build, where auth is
+  // bypassed to a username + role and the password is ignored (OAuth is future
+  // work). The real backend authenticates username+password and ignores role.
+  login: (username: string, password: string, role?: User['role']) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -42,8 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [refresh]);
 
-  const login = useCallback(async (username: string, password: string) => {
-    setUser(await api.post<User>('/api/auth/login', { username, password }));
+  const login = useCallback(async (username: string, password: string, role?: User['role']) => {
+    setUser(await api.post<User>('/api/auth/login', { username, password, role }));
   }, []);
 
   const logout = useCallback(async () => {

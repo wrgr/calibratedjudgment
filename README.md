@@ -1,4 +1,4 @@
-# Assessment Platform
+# Calibrated Judgment
 
 Grades a student's argumentative essay twice: once from the finished essay, and
 once from the transcript of the conversation they had with an AI assistant while
@@ -16,11 +16,44 @@ problem.
 Everything is preliminary until an instructor confirms it. The system is built
 to hand you evidence and its own uncertainty, not verdicts.
 
+**Live demo: <https://calibratedjudgment.org>** — no install, no account, no
+server. Explore four fully-graded example sessions, or paste in your own API key
+and grade a real essay + trace directly from your browser.
+
 ---
 
-## Quick start
+## Two ways to run it
 
-You need Python 3.10+ and Node 20+.
+The same React app runs in two modes, from one codebase.
+
+### 1. The static site (GitHub Pages) — the default
+
+There is **no backend**. The browser *is* the backend: the grading engine, the
+data store, and provider dispatch all run client-side. This is what
+<https://calibratedjudgment.org> serves, and what you get from `make
+build-static`.
+
+- **Bring your own key (BYO).** No API token is ever baked into the site. To
+  grade live, you paste your own provider key under **Settings → Your API key**;
+  the browser calls the provider **directly** and the key is used for that call,
+  stored only in your browser, and never uploaded or written to any exported
+  file. See [Providers and keys](#providers-and-keys).
+- **Your data lives in your browser.** Sessions you create, rubric edits, and
+  instructor overrides persist in `localStorage`. **Settings → Your data** lets
+  you download it all as a single JSON file and load it back on any machine — a
+  poor-man's account until real sign-in exists.
+- **Sign-in is bypassed.** Enter any name and pick a role (student / instructor /
+  admin) to explore; a role switcher in the sidebar flips between them live.
+  This is a placeholder for OAuth (future work).
+- **Four demo sessions are bundled** with precomputed scores — one per
+  divergence pattern, including the adversarial parrot — so the whole interface
+  is explorable before you configure anything.
+
+### 2. Self-hosted backend — full platform
+
+Run the FastAPI backend for durable multi-user storage, server-side keys, SSE
+streaming, and the research export. This is also the path for the features the
+browser can't do yet (see [Future work](#future-work)).
 
 ```bash
 make setup && make dev
@@ -32,16 +65,11 @@ runs the API on `:8000` and the Vite dev server on `:5173`. Open
 
 If `make setup` fails on the editable install, your `python3` is probably too
 old — the macOS system Python 3.9 cannot do PEP 660 installs. Point the
-Makefile at a newer one:
+Makefile at a newer one: `make setup PY=/path/to/python3.12`.
 
-```bash
-make setup PY=/path/to/python3.12
-```
+#### Demo accounts (self-hosted only)
 
-Four demo sessions are seeded with precomputed scores, so you can explore the
-entire interface before configuring any LLM provider.
-
-### Accounts
+The static site needs no accounts; the backend seeds these on first boot:
 
 | Account | Password | Sees |
 |---|---|---|
@@ -55,8 +83,7 @@ Change these before the platform touches real student work.
 
 **Settings → Take the tour** spotlights each control in turn and explains it,
 opening drawers and expanding panels along the way. It is the fastest way to
-learn the interface, and it adapts to your role: 15 steps for a student, 25 for
-an instructor, 26 for an admin.
+learn the interface, and it adapts to your role.
 
 ---
 
@@ -70,8 +97,7 @@ raw status. *Import trace & essay* takes a session name, the dialogue as JSON
 
 **Writing Session** is the easier way to produce a gradeable session: chat with
 the assistant as a student would, paste the finished essay, and save. The
-conversation becomes the trace. The save button stays disabled until there is at
-least one exchange and some essay text.
+conversation becomes the trace. (The chat needs a working provider key.)
 
 **Session detail** has two tabs. *Scores & Divergence* shows four headline
 numbers, then a row per writing dimension with two bars — dialogue and essay —
@@ -98,7 +124,12 @@ words, with an intensity slider. See [Grading style](#grading-style).
 ## How grading works
 
 Start a run with *Grade live* on a session. It needs a working provider; the
-button will error otherwise.
+button will error otherwise. In the static build the grading engine
+([`frontend/src/local/grading/`](frontend/src/local/grading/)) is a faithful
+TypeScript port of the backend engine
+([`backend/app/services/grading/`](backend/app/services/grading/)) — same
+prompts, same guards, same aggregation — so a browser-graded session and a
+server-graded session are produced the same way.
 
 ### Rubrics
 
@@ -141,7 +172,7 @@ without surviving evidence does not exist.
 **Attribution.** On the dialogue channel, quotes must come from a turn the
 *student* wrote. Assistant text never counts as evidence of student mastery,
 even when the student copies it back verbatim. The prompt states this as its
-most important rule and the server re-checks it, because the prompt alone is not
+most important rule and the engine re-checks it, because the prompt alone is not
 trustworthy. There is a bundled adversarial exemplar (`Alex M.`) whose student
 turns are entirely copied from the assistant, and it exists to keep this honest.
 
@@ -173,16 +204,13 @@ Feeding that text straight into every scoring prompt does not work: next to
 anchor descriptors the model is told are non-negotiable, a style instruction
 reads as decorative and the model reports no effect. Instead the platform molds
 the style into a short per-criterion reconciliation note (240 characters
-maximum), once per rubric version and style text, cached thereafter.
+maximum), once per run.
 
 Notes are only generated for criteria the rubric marks `styleEligible` — `W1d-1`
 (formal style), `W1d-2` (objective tone), and `L1-1` (conventions). Style can
 influence how expression is judged. It can never influence what was argued. The
 allowlist and the anti-rewrite length checks hold at every intensity; intensity
 only changes how assertively a note leans on genuinely borderline calls.
-
-Each score record stores the note it was graded with, so the evidence trail can
-show you what the model was actually told.
 
 ### Layer B: AI reliance
 
@@ -238,76 +266,70 @@ showing current versus proposed, and it changes nothing until you publish it.
 Supported: OpenAI, Claude, Gemini, Groq, Mistral, GitHub Models, TAMU AI, and
 Ollama.
 
-**Server keys** are the default. Copy `.env.example` to `.env` and fill in what
-you use. Keys are read at startup and never sent to the browser. `DEFAULT_PROVIDER`
-picks the fallback for users with no preference.
+**Bring your own key** is the model. Any user pastes a personal key under
+**Settings → Your API key**. It lives in that browser's `localStorage`, is used
+for that user's calls, and is never written to the store, the exported data
+file, or any log.
 
-**Bring your own key**: any signed-in user can paste a personal key under
-Settings. It lives in that browser's localStorage, rides along on that user's
-requests as `X-LLM-*` headers, is used for the call, and is never written to the
-database or the logs. While set it takes precedence over the server key. *Test
-key* makes one minimal call and reports what the provider actually said, which
-is the quickest way to tell a bad key from a wrong model name.
+- On the **static site**, the browser calls the provider **directly** with your
+  key. Some providers do not send CORS headers and will refuse a direct browser
+  call regardless of key validity — **Claude** and **Gemini** are the most
+  reliable for a keyless-server setup; OpenAI and gateways behind Cloudflare
+  (TAMU) typically need a proxy, which is [future work](#future-work). *Test
+  key* in Settings tells you immediately whether a provider answers your browser.
+- On the **self-hosted backend**, the same key rides along as `X-LLM-*` headers
+  and the *server* makes the call, so the CORS limitation does not apply and any
+  provider works. Server-side `.env` keys are supported too but optional; see
+  [`.env.example`](.env.example).
 
 ### TAMU AI
 
-Texas A&M's OpenAI-compatible gateway at `https://chat-api.tamu.ai/openai`. Get
-a key from chat.tamu.ai and set `TAMU_AI_API_KEY` (`TAMU_CHAT_API_KEY` is
-accepted as an alias, since that is what TAMU's own client library uses).
-
-One key reaches OpenAI, Anthropic, and Gemini models under campus licensing, so
+Texas A&M's OpenAI-compatible gateway at `https://chat-api.tamu.ai/openai`. One
+key reaches OpenAI, Anthropic, and Gemini models under campus licensing, so
 institutional data-handling terms apply instead of each vendor's consumer terms.
-That is the reason to prefer it over a personal key when student essay text is
-involved. Model IDs carry a `protected.` prefix and are listed live from the
-gateway rather than hardcoded.
-
-Two things about this gateway are worth knowing, because both cost real
-debugging time. It sits behind Cloudflare, which rejects Python's default
-`Python-urllib/3.x` user agent with a 403 before the request ever reaches the
-API — every key looks invalid. And its successful responses are not served with
-a JSON content type, so the OpenAI SDK hands back the raw body as a string
-instead of a parsed object. Both are handled in `backend/app/core/llm.py`; the
-comments there explain why the code looks the way it does.
+Model IDs carry a `protected.` prefix. The gateway sits behind Cloudflare, which
+is why it needs the server-side path rather than a direct browser call.
 
 ---
 
 ## Where state lives
 
-One SQLite file, `backend/data/assessments.db`. Back that up and you have backed
-up everything. Override the location with `ASSESSMENT_DATA_DIR` or
-`ASSESSMENT_DB_PATH`.
+**Static build:** one JSON blob in the browser's `localStorage`, seeded on first
+visit from the bundled demo fixtures
+([`frontend/src/local/fixtures/demo.json`](frontend/src/local/fixtures/demo.json),
+generated by [`scripts/gen_demo_fixtures.py`](scripts/gen_demo_fixtures.py)).
+Download and re-load it under **Settings → Your data**. Clearing site data
+resets to the demo.
+
+**Self-hosted backend:** one SQLite file, `backend/data/assessments.db`. Back
+that up and you have backed up everything. Override the location with
+`ASSESSMENT_DATA_DIR` or `ASSESSMENT_DB_PATH`.
 
 | Table | Holds |
 |---|---|
 | `users` | accounts, roles, per-user preferences and grading style |
-| `auth_sessions` | opaque session tokens (SHA-256 hashes only), 14-day expiry |
 | `content_items` | rubrics, every version, one active at a time |
 | `assessments` | sessions and their artifacts (essay + trace JSON) |
 | `score_records` | one row per criterion per channel: passes, median, spread, evidence, confidence, override |
 | `layer_b_results` | reliance coding per assessment |
-| `style_molds` | cached per-criterion style notes |
 | `jobs` | grading job progress, for polling and SSE resume |
-
-Schema changes apply themselves. `init_db()` adds missing columns idempotently
-on startup, so upgrading means pulling the code and restarting.
 
 ---
 
 ## Development
 
 ```bash
-make test     # 173 backend tests; no network, no API keys, no server needed
-make build    # strict TypeScript typecheck + production frontend build
-make e2e      # zero-key end-to-end smoke path over HTTP
-make api      # API only, on :8000
-make web      # Vite only, on :5173
-make gen-api  # regenerate frontend API types from the live OpenAPI schema
+make build          # normal (backend-served) frontend build — strict typecheck
+make build-static   # backend-free static build (VITE_STATIC=1) — what Pages ships
+make preview-static # serve the static build locally to smoke-test it
+make gen-demo       # regenerate the bundled demo fixtures (no DB, no network)
+make test           # backend test suite; no network, no API keys, no server needed
+make e2e            # zero-key end-to-end smoke path over HTTP
+make dev            # backend API + Vite dev server together
 ```
 
-Every backend test is deterministic and offline. LLM calls are driven by a fake
-or mocked at the module boundary, and `tests/conftest.py` explicitly clears
-ambient provider keys so a key in your environment cannot change a result. CI
-runs the suite and the strict frontend build on every push.
+Every backend test is deterministic and offline. CI runs the suite and the
+strict frontend build on every push.
 
 Layout:
 
@@ -316,13 +338,17 @@ backend/app/
   api/          HTTP routes (auth, sessions, grading, content, chat, admin, export)
   core/         llm.py (provider dispatch, parsing, retries), security.py (auth, CSRF, rate limits)
   db/           database.py — schema, migrations, every query
-  services/     grading/ (engine, prompts, aggregate, divergence, layerb, molding, calibration),
-                jobs.py, llm_bridge.py
+  services/     grading/ (engine, prompts, aggregate, divergence, layerb, molding, calibration)
 frontend/src/
   pages/        one file per screen
   components/   Dashboard, EvidenceTrail, RubricEditor, Drawer, Tour
+  api/client.ts routes to the backend, or to the in-browser backend in static mode
+  local/        the static (backend-free) build:
+                store.ts (browser state + export/import), backend.ts (request router),
+                llm.ts (direct provider calls), grading/ (TS port of the engine),
+                jobs.ts + eventsource.ts (client-side grading progress)
 content/        seed rubric and exemplar definitions
-docs/           construct map, evidence model, export dictionary, testing notes
+scripts/        gen_demo_fixtures.py — bundle the demo data for the static build
 ```
 
 ### The governing rule
@@ -336,63 +362,51 @@ add its row. No row, no claim.
 
 ## Deployment
 
-The platform runs as a single process. Uvicorn serves the API, and when
-`frontend/dist/` exists it serves the built SPA from the same port.
+### GitHub Pages (the live site)
 
-### Docker
+[`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) builds
+the static client with `VITE_STATIC=1` and publishes it on every push to `main`.
+The custom domain lives in
+[`frontend/public/CNAME`](frontend/public/CNAME), so it survives every deploy.
+
+One-time repo setup: **Settings → Pages → Source = "GitHub Actions"**, and point
+your DNS at GitHub Pages. Nothing else — no server, no secrets, no token.
+
+### Self-hosted backend (Docker)
 
 ```bash
-cp .env.example .env
+cp .env.example .env      # optional: add server keys, or leave empty for BYO-only
 docker compose up --build
 ```
 
 Everything on <http://localhost:8000>. The `app-data` volume persists
-`backend/data/`.
+`backend/data/`. Before real use: replace the demo accounts, terminate TLS in
+front of it, back up `backend/data/`, run one worker (login rate limiting is
+per-process), and check your institution's FERPA-equivalent requirements. This
+is a research instrument, not a cleared system of record.
 
-### Bare metal
+---
 
-```bash
-make setup && make build
-cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+## Future work
 
-### Before real use
-
-- **Replace the demo accounts.** They are seeded on first boot with published
-  passwords.
-- **Terminate TLS in front of it.** Session cookies only get the `Secure` flag
-  when the app sees an HTTPS scheme. The Docker image already passes
-  `--proxy-headers`; on bare metal add `--proxy-headers --forwarded-allow-ips
-  '<proxy-ip>'` yourself. Browser-supplied keys should never cross plain HTTP.
-- **Back up `backend/data/`.** It is the research record.
-- **Run one worker.** Login rate limiting is per-process memory. With
-  `--workers N` the effective limit multiplies by N and an attacker spreading
-  attempts across workers evades lockout entirely.
-- **Check your institution's requirements** (FERPA and equivalents) before
-  collecting real student work. This is a research instrument, not a cleared
-  system of record.
-
-Security posture, for review: sessions are opaque random tokens stored only as
-SHA-256 hashes with server-side expiry; cookies are HttpOnly and SameSite=Lax;
-every mutating route requires an `X-Requested-With: fetch` header as the CSRF
-guard; passwords use pbkdf2-sha256 at 1,000,000 iterations; all SQL is
-parameterised. Provider error text is scrubbed of API keys before it reaches the
-browser, because those messages surface in job errors that students can see.
+- **A key-proxying backend for the static site**, so providers that block direct
+  browser (CORS) calls — OpenAI, Cloudflare-fronted gateways — work without
+  self-hosting the whole platform.
+- **Local model hosting.** Ollama is in the provider list, but a browser served
+  from `https://` can't reach `http://localhost:11434` (mixed content + CORS). A
+  small local companion, or the proxy above, would light this up.
+- **Real authentication (OAuth)** to replace the username-only bypass, with
+  per-user cloud storage replacing the download/upload JSON.
 
 ---
 
 ## Limitations
 
-Worth being direct about these.
-
 **The scores have never been validated against human grades.** The test suite
 proves the machinery is correct — that aggregation, routing, guards, and
 provenance behave as specified. It does not prove the scores are right. There is
-no agreement study in this repository: no quadratic weighted kappa, no
-exact/adjacent agreement against instructor grades on held-out essays. The
-reliability dashboard derives calibration from overrides collected during use,
-which is useful but is downstream of already trusting the output. If you plan to
-rely on this for anything consequential, run that study first.
+no agreement study in this repository. If you plan to rely on this for anything
+consequential, run that study first.
 
 **It targets high-school writing.** The rubric is anchored to Maryland state
 standards for grades 11–12. Using it for university work means replacing the
@@ -402,14 +416,10 @@ construct map, not just editing prompt text.
 rubric scorer and the divergence analysis, Layer B, and the entire premise are
 inert.
 
-**Only login is rate limited.** Any authenticated user can start unlimited
-grading runs and chat turns against your provider credits.
-
-**Concurrency is modest by design.** Six grading threads against one SQLite
-writer is fine for a classroom and will not survive a campus.
-
-There is also one piece of dead schema: the `assessment_runs` table and its
-`save_run_state` / `load_run_state` / `delete_run_state` helpers have no callers.
+**On the static site, grading runs in your browser tab** and uses your key and
+your rate limits. A full run is ~70+ calls; if you close the tab mid-run it
+stops. Provider CORS policy, not this app, decides which providers answer a
+direct browser call.
 
 ---
 
