@@ -1,0 +1,1848 @@
+[
+ {
+  "id": "exemplar-maya",
+  "name": "Maya R. — Convergent / Collaborative",
+  "description": "Pattern: trace and product scores converge, with constructive AI engagement. The student originates the claim, stress-tests it, verifies a statistic, and plans structure herself. Strongest-validity case (spec §6).",
+  "essay": "Every weekday morning, thousands of Maryland high school students board buses before sunrise and sit through first period in a fog. This is not a failure of discipline; it is a failure of scheduling. Because adolescent circadian rhythms shift sleep onset later during the teenage years, Maryland high schools should move their start times to 8:30 a.m. or later, even if doing so requires reorganizing bus routes and athletic schedules. Critics argue that later start times merely shift the whole day back without adding sleep; the evidence shows otherwise.\n\nThe biological case is well established. The American Academy of Pediatrics and the CDC both recommend that high schools start no earlier than 8:30 a.m., because melatonin release in adolescents begins roughly two hours later than in adults. When Seattle moved its high school start times nearly an hour later, researchers found that students gained a median of 34 minutes of sleep per night and that final grades rose by 4.5 percent. In other words, students did not simply stay up later; they slept more, and their performance improved.\n\nOpponents of later start times raise a genuine concern: cost. Staggered bus routes are cheaper than parallel ones, and moving high schools later can force elementary schools earlier or require additional buses. This objection deserves to be taken seriously, because transportation is often the largest line item a district can actually adjust. However, an economic analysis by the RAND Corporation projected that statewide adoption of 8:30 a.m. start times would pay for itself within two years through improved graduation rates and reduced car accidents among teen drivers. A real cost, in short, is outweighed by a larger and better-documented benefit.\n\nSome also worry that after-school athletics and jobs would suffer. Yet districts that made the change, including Seattle and entire counties in Kentucky and Minnesota, report that practices and work schedules adapted within a season. Convenience adjusted; biology did not.\n\nLater start times will not solve every problem adolescents face, and districts with severe budget constraints may need phased implementation. But the direction of the evidence is consistent: when the school day aligns with adolescent sleep biology, attendance, grades, and safety improve. Maryland districts should commit to an 8:30 a.m. minimum start time within three years, beginning with pilot high schools this fall. The cost of the change is measured in bus routes; the cost of the status quo is measured in students.",
+  "trace": {
+   "traceId": "trace-maya-001",
+   "assignmentId": "arg-essay-q4",
+   "turns": [
+    {
+     "turnId": 1,
+     "speaker": "student",
+     "text": "I'm writing my argument essay on school start times. My working claim is: Maryland high schools should move their start times to 8:30 or later because teenagers need more sleep. Is that precise enough, or is 'need more sleep' too vague for a thesis?"
+    },
+    {
+     "turnId": 2,
+     "speaker": "assistant",
+     "text": "Good instinct — 'teenagers need more sleep' is a bit vague because it doesn't say *why* schools are the right lever. You could ground it in the biology (circadian rhythm shift) and acknowledge the tradeoff you're asking districts to accept. Want to try a revision?"
+    },
+    {
+     "turnId": 3,
+     "speaker": "student",
+     "text": "Ok, revised: Because adolescent circadian rhythms shift sleep onset later, Maryland high schools should start at 8:30 or later, even if it means reorganizing bus routes. I added the bus part on purpose so I'm not dodging the cost issue. What's the strongest objection someone could make to this claim?"
+    },
+    {
+     "turnId": 4,
+     "speaker": "assistant",
+     "text": "Strong revision. The three most common objections: (1) cost — bus fleets are staggered, so later high school starts ripple into elementary schedules; (2) displacement — kids will just stay up later and gain no sleep; (3) after-school logistics — athletics and jobs get squeezed."
+    },
+    {
+     "turnId": 5,
+     "speaker": "student",
+     "text": "I think the cost one is the strongest objection because it's the only one with a real budget number attached, so that's the counterclaim I'll develop fairly instead of strawmanning. The displacement one I can beat with the Seattle study since students actually gained sleep. Do you know what the Seattle study found exactly?"
+    },
+    {
+     "turnId": 6,
+     "speaker": "assistant",
+     "text": "The Seattle study (Dunster et al., Science Advances, 2018) found students gained a median of 34 minutes of sleep per night after the district moved start times later, and grades in the studied science courses rose about 4.5%."
+    },
+    {
+     "turnId": 7,
+     "speaker": "student",
+     "text": "Wait, that 4.5% — is that a rise in final grades or in test scores specifically? I don't want to cite it inaccurately, my teacher checks sources. Also was it all courses or just the science classes they studied?"
+    },
+    {
+     "turnId": 8,
+     "speaker": "assistant",
+     "text": "Good catch — it was final grades in the two biology courses the researchers had access to, not school-wide. Safest phrasing: \"final grades rose by 4.5 percent\" in the studied courses."
+    },
+    {
+     "turnId": 9,
+     "speaker": "student",
+     "text": "Then I'll keep my wording cautious. For structure: I'm going to put the concession about bus costs right before my strongest evidence, the RAND cost-benefit projection, so the rebuttal lands immediately after I've granted the objection. Concession, then rebuttal, weaker points after."
+    },
+    {
+     "turnId": 10,
+     "speaker": "assistant",
+     "text": "That's an effective sequence — granting the objection first makes the rebuttal read as earned rather than defensive. The RAND analysis you mentioned projected statewide 8:30 start times paying for themselves within about two years."
+    },
+    {
+     "turnId": 11,
+     "speaker": "student",
+     "text": "Here's my conclusion draft: 'Later start times will not solve every problem adolescents face, and districts with severe budget constraints may need phased implementation. But the direction of the evidence is consistent.' Then I want to end with a concrete ask — a three-year commitment with pilot schools. Does the hedge at the start weaken it?"
+    },
+    {
+     "turnId": 12,
+     "speaker": "assistant",
+     "text": "No — the hedge is a strength here. It shows you're conceding scope honestly, which makes the concrete ask more credible. Ending on the pilot-school commitment gives the conclusion a call to action the body has earned."
+    }
+   ]
+  },
+  "scoreSeeds": [
+   {
+    "criterionId": "W1a-1",
+    "channel": "product",
+    "passes": [
+     5,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Maryland high schools should move their start times to 8:30 a.m. or later, even if doing so requires reorganizing bus routes and athletic schedules",
+      "reasoning": "Precise, arguable claim with an explicit scope condition (accepting the logistics tradeoff) that anticipates the complexity of the issue — matches the level-5 anchor."
+     }
+    ],
+    "anchorMatched": "A precise, knowledgeable claim is stated with well-chosen qualifiers or scope conditions that anticipate the complexity of the issue."
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "Critics argue that later start times merely shift the whole day back without adding sleep; the evidence shows otherwise.",
+      "reasoning": "The opposing claim is stated fairly in the introduction and the writer’s claim is explicitly set against it; the boundary is maintained through the counterclaim paragraphs."
+     }
+    ],
+    "anchorMatched": "Opposing claim(s) are stated fairly and the writer’s claim is clearly and consistently distinguished from them."
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "students gained a median of 34 minutes of sleep per night and that final grades rose by 4.5 percent",
+      "reasoning": "Each reason is supported with named, specific evidence (AAP/CDC recommendation, Seattle study, RAND projection)."
+     }
+    ],
+    "anchorMatched": "Each reason is supported with relevant, specific evidence (named sources, data, or concrete cases)."
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "product",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "This objection deserves to be taken seriously, because transportation is often the largest line item a district can actually adjust.",
+      "reasoning": "The cost counterclaim is developed in a strong form, its validity is conceded, and the rebuttal (RAND projection) argues its limitation with evidence."
+     }
+    ],
+    "anchorMatched": "A counterclaim is developed fairly: its strengths are acknowledged and its limitations are argued with evidence."
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "product",
+    "passes": [
+     4,
+     3,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "because transportation is often the largest line item a district can actually adjust",
+      "reasoning": "Framing consistently addresses what a district-level audience (boards, administrators) values: budgets, logistics, phased implementation."
+     }
+    ],
+    "anchorMatched": "Explanations, framing, and concessions are consistently pitched to a defined audience’s knowledge and values."
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "However, an economic analysis by the RAND Corporation projected",
+      "reasoning": "Concession and contrast are signaled precisely where the logic turns (However, Yet, In other words); relationships between claims, reasons, evidence are consistently clarified."
+     }
+    ],
+    "anchorMatched": "Varied syntax and linking language consistently clarify claim-reason-evidence relationships within and across paragraphs."
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "Opponents of later start times raise a genuine concern: cost.",
+      "reasoning": "Deliberate sequencing: biology first, then the strongest objection conceded before the RAND rebuttal, then the weaker athletics objection — the argument builds."
+     }
+    ],
+    "anchorMatched": "Reasons and evidence are deliberately sequenced (e.g., concession before rebuttal, weaker to stronger) and the argument builds."
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Convenience adjusted; biology did not.",
+      "reasoning": "Formal academic register throughout; rhetorical compression is deliberate rather than casual."
+     }
+    ],
+    "anchorMatched": "Formal style maintained throughout; diction is appropriate to academic argument."
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Opponents of later start times raise a genuine concern: cost.",
+      "reasoning": "Objective tone; the opposing position is characterized in terms its proponents would accept (\"a genuine concern\")."
+     }
+    ],
+    "anchorMatched": "Objective tone throughout; emotional resonance, where present, is grounded in evidence."
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "product",
+    "passes": [
+     5,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The cost of the change is measured in bus routes; the cost of the status quo is measured in students.",
+      "reasoning": "Conclusion synthesizes the argument including the counterclaim’s disposition and ends with a concrete, earned call to action (pilot schools, three-year commitment)."
+     }
+    ],
+    "anchorMatched": "The conclusion synthesizes the argument (including the counterclaim’s disposition) and articulates implications or a call to action that the body has earned."
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "product",
+    "passes": [
+     5,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "This is not a failure of discipline; it is a failure of scheduling.",
+      "reasoning": "Essentially error-free; semicolons and parallelism used rhetorically."
+     }
+    ],
+    "anchorMatched": "Essentially error-free, with conventions used rhetorically (deliberate fragments, punctuation for emphasis) where appropriate."
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "A real cost, in short, is outweighed by a larger and better-documented benefit.",
+      "reasoning": "ADVISORY: reasons are integrated and weighed against the counterclaim (relational, SOLO level 4). Teacher judgment requested."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 3,
+      "quote": "Because adolescent circadian rhythms shift sleep onset later, Maryland high schools should start at 8:30 or later, even if it means reorganizing bus routes.",
+      "reasoning": "The student authored and revised the claim herself, adding the qualifier deliberately (\"I added the bus part on purpose\"). Student-originated precision."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "that's the counterclaim I'll develop fairly instead of strawmanning",
+      "reasoning": "The student distinguishes her position from specific opposing claims and selects which to engage — student-authored differentiation."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     3
+    ],
+    "evidence": [
+     {
+      "turnId": 7,
+      "quote": "is that a rise in final grades or in test scores specifically? I don't want to cite it inaccurately",
+      "reasoning": "The student interrogates the relevance and accuracy of evidence before using it — evidence-selection behavior originating with the student."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "I think the cost one is the strongest objection because it's the only one with a real budget number attached",
+      "reasoning": "The student evaluates competing objections and commits to developing the strongest fairly — counterclaim reasoning in her own words."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "trace",
+    "passes": [
+     3,
+     3,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 7,
+      "quote": "my teacher checks sources",
+      "reasoning": "ADVISORY: some audience awareness (accuracy for a source-checking reader), but audience reasoning is thin in the dialogue."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "turnId": 9,
+      "quote": "I'm going to put the concession about bus costs right before my strongest evidence, the RAND cost-benefit projection, so the rebuttal lands immediately",
+      "reasoning": "The student articulates a deliberate persuasive sequence (concession before rebuttal) — sequencing reasoning originated by the student."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 11,
+      "quote": "Then I want to end with a concrete ask — a three-year commitment with pilot schools. Does the hedge at the start weaken it?",
+      "reasoning": "The student drafted her own conclusion, chose the hedge and the call to action herself, and sought critique rather than text."
+     }
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "The displacement one I can beat with the Seattle study since students actually gained sleep.",
+      "reasoning": "ADVISORY: the student maps specific evidence onto specific objections — relational reasoning in her own words. Teacher judgment requested."
+     }
+    ]
+   }
+  ],
+  "layerBSegments": [
+   {
+    "segmentTurns": [
+     1,
+     2
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Brings her own working claim and asks a targeted critique question about precision."
+   },
+   {
+    "segmentTurns": [
+     2,
+     3,
+     4
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Revises the claim herself, explains the revision, and asks for the strongest objection to stress-test it."
+   },
+   {
+    "segmentTurns": [
+     4,
+     5,
+     6
+    ],
+    "helpSeeking": "active",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Evaluates which objection is strongest and assigns evidence to objections before requesting a specific fact."
+   },
+   {
+    "segmentTurns": [
+     6,
+     7,
+     8
+    ],
+    "helpSeeking": "active",
+    "responseUse": "constructive",
+    "verification": true,
+    "evidence": "Challenges the 4.5% statistic and pins down its exact scope before citing it."
+   },
+   {
+    "segmentTurns": [
+     8,
+     9,
+     10
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Announces her own structural plan (concession before rebuttal); uses the assistant as a sounding board."
+   },
+   {
+    "segmentTurns": [
+     10,
+     11,
+     12
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Drafts her own conclusion and asks whether a specific rhetorical choice weakens it."
+   }
+  ]
+ },
+ {
+  "id": "exemplar-jordan",
+  "name": "Jordan T. — Over-reliance flag",
+  "description": "Pattern: product scores far exceed trace-inferred mastery, with passive/thoughtless reliance. The polished essay is largely assistant-authored; the dialogue shows the student originating almost nothing. Formative flag for the teacher (spec §6).",
+  "essay": "Social media platforms have become the default public square for American teenagers, yet the age checks guarding their gates are little more than an honor system. Because self-reported birthdates are trivially falsified and the documented harms to younger adolescents are concentrated precisely in the years the platforms claim to exclude, Congress should require social media companies to implement independently audited age verification for account creation. Skeptics contend that verification requirements threaten user privacy; in fact, well-designed verification can protect minors without creating new surveillance risks.\n\nThe case for verification begins with the failure of the status quo. Platforms nominally prohibit users under thirteen, yet a 2022 Ofcom study found that a third of children aged eight to seventeen with social media accounts had signed up with a false age. The harms of this failure are not hypothetical. Internal research disclosed by a Facebook whistleblower showed the company knew Instagram worsened body-image issues for a substantial share of teenage girls. When the gatekeeping mechanism is a birthday dropdown, the prohibition is a fiction.\n\nPrivacy advocates raise the strongest objection: verification systems could force all users to hand identity documents to companies with poor security records. This concern is legitimate, and any legislation should take it seriously. However, modern age-assurance methods, including third-party verification and zero-knowledge cryptographic proofs, allow a platform to learn only that a user is over a threshold age, not who the user is. The objection describes bad implementations, not the policy itself.\n\nOthers argue that determined teenagers will simply evade any system. Perfection, however, is the wrong standard. Seatbelt laws did not eliminate injuries, and yet they reshaped norms and saved lives at scale. Raising the cost of evasion from a single click to a deliberate act would meaningfully reduce underage exposure.\n\nAge verification is not a substitute for parental involvement or platform accountability, and it must be paired with strong data-minimization rules. But the current regime asks children to protect themselves from systems engineered to hold their attention. Congress should mandate audited, privacy-preserving age verification within two years, with penalties tied to revenue. The platforms built the gates; the law should ensure the gates actually close.",
+  "trace": {
+   "traceId": "trace-jordan-001",
+   "assignmentId": "arg-essay-q4",
+   "turns": [
+    {
+     "turnId": 1,
+     "speaker": "student",
+     "text": "i have to write an argumentative essay about whether social media companies should have to verify ages. can you just write a strong thesis statement for me"
+    },
+    {
+     "turnId": 2,
+     "speaker": "assistant",
+     "text": "Here is one option: \"Because self-reported birthdates are trivially falsified and the documented harms to younger adolescents are concentrated precisely in the years the platforms claim to exclude, Congress should require social media companies to implement independently audited age verification for account creation.\" Want me to explain the parts so you can adapt it?"
+    },
+    {
+     "turnId": 3,
+     "speaker": "student",
+     "text": "no that works. now write the first body paragraph with some real evidence in it"
+    },
+    {
+     "turnId": 4,
+     "speaker": "assistant",
+     "text": "Draft: \"The case for verification begins with the failure of the status quo. Platforms nominally prohibit users under thirteen, yet a 2022 Ofcom study found that a third of children aged eight to seventeen with social media accounts had signed up with a false age...\" Do you want to check the Ofcom figure yourself before using it?"
+    },
+    {
+     "turnId": 5,
+     "speaker": "student",
+     "text": "its fine. can you add the instagram whistleblower thing too and make it flow"
+    },
+    {
+     "turnId": 6,
+     "speaker": "assistant",
+     "text": "Added: \"Internal research disclosed by a Facebook whistleblower showed the company knew Instagram worsened body-image issues for a substantial share of teenage girls. When the gatekeeping mechanism is a birthday dropdown, the prohibition is a fiction.\""
+    },
+    {
+     "turnId": 7,
+     "speaker": "student",
+     "text": "ok now i need a counterargument paragraph, my teacher said we have to have one. do the privacy thing and then say why its wrong"
+    },
+    {
+     "turnId": 8,
+     "speaker": "assistant",
+     "text": "Draft: \"Privacy advocates raise the strongest objection: verification systems could force all users to hand identity documents to companies with poor security records... However, modern age-assurance methods, including third-party verification and zero-knowledge cryptographic proofs, allow a platform to learn only that a user is over a threshold age, not who the user is.\""
+    },
+    {
+     "turnId": 9,
+     "speaker": "student",
+     "text": "perfect. write a conclusion that ties it all together and sounds smart"
+    },
+    {
+     "turnId": 10,
+     "speaker": "assistant",
+     "text": "Draft conclusion: \"Age verification is not a substitute for parental involvement or platform accountability... The platforms built the gates; the law should ensure the gates actually close.\""
+    },
+    {
+     "turnId": 11,
+     "speaker": "student",
+     "text": "great. put it all together into one essay and fix any grammar mistakes. also add one more counterargument somewhere so it looks thorough"
+    },
+    {
+     "turnId": 12,
+     "speaker": "assistant",
+     "text": "Here is the assembled essay with an added paragraph addressing the evasion objection (\"Others argue that determined teenagers will simply evade any system...\") and grammar corrections throughout."
+    }
+   ]
+  },
+  "scoreSeeds": [
+   {
+    "criterionId": "W1a-1",
+    "channel": "product",
+    "passes": [
+     5,
+     5,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "Congress should require social media companies to implement independently audited age verification for account creation",
+      "reasoning": "Precise, knowledgeable claim with scope conditions (independently audited, account creation)."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "product",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Skeptics contend that verification requirements threaten user privacy; in fact, well-designed verification can protect minors without creating new surveillance risks.",
+      "reasoning": "Opposing claim stated and the writer’s claim explicitly distinguished from it in the introduction."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "a 2022 Ofcom study found that a third of children aged eight to seventeen with social media accounts had signed up with a false age",
+      "reasoning": "Reasons supported with named, specific evidence (Ofcom study, whistleblower disclosures)."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "product",
+    "passes": [
+     5,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "This concern is legitimate, and any legislation should take it seriously.",
+      "reasoning": "The privacy counterclaim is developed in strong form, conceded, and rebutted with a specific mechanism (zero-knowledge proofs)."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "any legislation should take it seriously",
+      "reasoning": "Framing addresses policymaker and privacy-advocate concerns; concessions pitched to a skeptical civic audience."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "However, modern age-assurance methods, including third-party verification and zero-knowledge cryptographic proofs",
+      "reasoning": "Contrast and concession signaled precisely where the logic turns; linking language consistently clarifies relationships."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Privacy advocates raise the strongest objection",
+      "reasoning": "Deliberate sequence: status-quo failure, strongest objection conceded and rebutted, weaker objection after."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "product",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "the age checks guarding their gates are little more than an honor system",
+      "reasoning": "Formal register with deliberate, controlled figurative language."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "This concern is legitimate, and any legislation should take it seriously.",
+      "reasoning": "Objective tone; the opposing position is presented in terms its proponents would accept."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "product",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The platforms built the gates; the law should ensure the gates actually close.",
+      "reasoning": "Conclusion synthesizes the argument, disposes of the counterclaims, and issues an earned call to action."
+     }
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "product",
+    "passes": [
+     5,
+     5,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "Perfection, however, is the wrong standard.",
+      "reasoning": "Essentially error-free; punctuation used rhetorically."
+     }
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The objection describes bad implementations, not the policy itself.",
+      "reasoning": "ADVISORY: relational reasoning — objections are integrated and disposed of at the level of principle. Teacher judgment requested."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     1,
+     "no-evidence"
+    ],
+    "evidence": [
+     {
+      "turnId": 1,
+      "quote": "can you just write a strong thesis statement for me",
+      "reasoning": "The only claim-related student contribution is a request for the assistant to author the claim. No student-originated claim exists in the dialogue."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "trace",
+    "passes": [
+     1,
+     "no-evidence",
+     1
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "its fine. can you add the instagram whistleblower thing too",
+      "reasoning": "The student declines to check evidence when offered the chance and requests insertion of evidence by topic label — no student evaluation of relevance or sufficiency."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "trace",
+    "passes": [
+     1,
+     1,
+     2
+    ],
+    "evidence": [
+     {
+      "turnId": 7,
+      "quote": "do the privacy thing and then say why its wrong",
+      "reasoning": "The student knows a counterargument is required (external requirement) but delegates both its development and rebuttal; framing \"say why its wrong\" suggests dismissal rather than fair development."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     1
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "trace",
+    "passes": [
+     1,
+     1,
+     1
+    ],
+    "evidence": [
+     {
+      "turnId": 11,
+      "quote": "also add one more counterargument somewhere so it looks thorough",
+      "reasoning": "ADVISORY: the student’s own reasoning is about appearance of thoroughness, not argument quality — prestructural. Teacher judgment requested."
+     }
+    ]
+   }
+  ],
+  "layerBSegments": [
+   {
+    "segmentTurns": [
+     1,
+     2
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Asks the assistant to author the thesis; accepts it without adaptation (\"no that works\")."
+   },
+   {
+    "segmentTurns": [
+     2,
+     3,
+     4
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Requests a complete body paragraph; declines the offered chance to verify the Ofcom figure (\"its fine\")."
+   },
+   {
+    "segmentTurns": [
+     4,
+     5,
+     6
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Requests evidence insertion by topic label; no evaluation of the added content."
+   },
+   {
+    "segmentTurns": [
+     6,
+     7,
+     8
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Delegates the required counterargument and its rebuttal wholesale."
+   },
+   {
+    "segmentTurns": [
+     8,
+     9,
+     10
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Requests a conclusion that \"sounds smart\"; accepts without reading critically."
+   },
+   {
+    "segmentTurns": [
+     10,
+     11,
+     12
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Requests assembly, grammar fixes, and a cosmetic extra counterargument \"so it looks thorough\"."
+   }
+  ]
+ },
+ {
+  "id": "exemplar-sam",
+  "name": "Sam K. — Execution gap",
+  "description": "Pattern: trace-inferred mastery exceeds product scores. In dialogue the student articulates a conditional claim, a fair concession-rebuttal, and audience-driven sequencing — then writes a rushed, underdeveloped essay at 11pm. Instructional target: transfer/execution (spec §6).",
+  "essay": "Year-round schooling is something a lot of districts are thinking about. Some people think it is a good idea but I think there are problems with it. Schools should think carefully before they switch to year-round calendars.\n\nOne reason is that the breaks are too short. With year-round schooling you get little breaks all year instead of one big summer, students never really get to rest. Also teachers have to redo their room and plans over and over. Another reason is family schedules, parents have jobs and younger kids in other schools, if the calendars dont match up it is a big problem for childcare.\n\nAnother reason is that it costs more money. Air conditioning in the summer is expensive and buses have to run all year. Some districts that tried it went back because of the money.\n\nSome people say summer learning loss is a reason to do year-round school. That is a real thing but studies show the total learning is about the same either way.\n\nIn conclusion, year-round schooling has more problems than benefits and schools should not switch to it.",
+  "trace": {
+   "traceId": "trace-sam-001",
+   "assignmentId": "arg-essay-q4",
+   "turns": [
+    {
+     "turnId": 1,
+     "speaker": "student",
+     "text": "I'm arguing against year-round schooling, but I want to be careful about the claim. It's not that year-round calendars are always bad — it's that for districts like ours, the costs and disruption outweigh the achievement benefits, because the research shows the benefits are basically zero. Does that distinction make sense as a thesis?"
+    },
+    {
+     "turnId": 2,
+     "speaker": "assistant",
+     "text": "Yes — that conditional framing ('for districts like ours, costs outweigh benefits') is much more defensible than a blanket claim. It also tells you what evidence you need: cost data and achievement comparisons."
+    },
+    {
+     "turnId": 3,
+     "speaker": "student",
+     "text": "Right. And I have to be honest about summer learning loss — that's the strongest argument on the other side and it's real, I have to concede that instead of pretending it isn't. But the key is the Wake County and San Diego studies: when researchers compared year-round and traditional calendars, total annual learning came out about the same. The loss gets redistributed across three intersessions instead of one summer, it doesn't disappear."
+    },
+    {
+     "turnId": 4,
+     "speaker": "assistant",
+     "text": "That's a sophisticated way to handle the counterclaim — conceding the phenomenon while showing the proposed solution doesn't actually fix it. The redistribution point is the crux."
+    },
+    {
+     "turnId": 5,
+     "speaker": "student",
+     "text": "For the audience — this is supposed to be aimed at a school board, so I should lead with what they care about: budget first, then the childcare disruption for working families, then the achievement evidence to defuse the learning-loss argument. Cost, disruption, then the concession-rebuttal. Does that order make sense or should the concession come earlier?"
+    },
+    {
+     "turnId": 6,
+     "speaker": "assistant",
+     "text": "For a school board, cost-first is a reasonable strategy. Consider putting the concession-rebuttal immediately after cost, though — boards will be thinking about learning loss the whole time, so defusing it early may buy credibility for the rest."
+    },
+    {
+     "turnId": 7,
+     "speaker": "student",
+     "text": "Hmm, I see the logic but I disagree — if I defuse learning loss first, the budget argument reads like an afterthought. I'll keep cost first but signal early that I'll address achievement, something like 'the achievement case for year-round calendars, examined below, is weaker than it appears.' That way the board knows it's coming."
+    },
+    {
+     "turnId": 8,
+     "speaker": "assistant",
+     "text": "That forward-reference solution works well — it keeps your preferred order while managing the board's attention. Good luck with the draft."
+    },
+    {
+     "turnId": 9,
+     "speaker": "student",
+     "text": "Thanks. It's 11pm and this is due tomorrow so I'm just going to write what I can tonight. I know what I want to say, I just need to get it down."
+    },
+    {
+     "turnId": 10,
+     "speaker": "assistant",
+     "text": "Understood — you have a clear plan: the conditional claim, cost evidence, the childcare point, and the concession-rebuttal on learning loss with the redistribution finding. Even a compressed version of that structure will be coherent."
+    }
+   ]
+  },
+  "scoreSeeds": [
+   {
+    "criterionId": "W1a-1",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "Schools should think carefully before they switch to year-round calendars.",
+      "reasoning": "The stated claim is hedged and vague (\"think carefully\") — the conditional cost-benefit position argued in the body never appears as a claim."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "product",
+    "passes": [
+     1,
+     2,
+     1
+    ],
+    "evidence": [
+     {
+      "quote": "Some people think it is a good idea but I think there are problems with it.",
+      "reasoning": "Opposing position gestured at (\"some people\") without a stated opposing claim to distinguish from."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "Some districts that tried it went back because of the money.",
+      "reasoning": "Evidence is generic and unattributed (no named districts, studies, or figures); major reasons are asserted rather than supported."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "product",
+    "passes": [
+     2,
+     3,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "That is a real thing but studies show the total learning is about the same either way.",
+      "reasoning": "The counterclaim is conceded (\"a real thing\") and a rebuttal is gestured at, but the studies are unnamed and the redistribution logic is compressed to one sentence."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "parents have jobs and younger kids in other schools",
+      "reasoning": "Some audience-relevant content (family logistics) but no framing pitched to a decision-making audience."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "product",
+    "passes": [
+     1,
+     1,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "Another reason is that it costs more money.",
+      "reasoning": "Connectives are almost exclusively additive (\"One reason\", \"Also\", \"Another reason\") regardless of the logical relationship."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "Some people say summer learning loss is a reason to do year-round school.",
+      "reasoning": "A list-like order with no build; the planned board-first sequencing (cost leading, forward reference) is absent."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "product",
+    "passes": [
+     3,
+     3,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "Year-round schooling is something a lot of districts are thinking about.",
+      "reasoning": "Generally plain-formal with casual lapses (\"a lot of\", \"a big problem\", \"That is a real thing\")."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "product",
+    "passes": [
+     3,
+     4,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "Some people say summer learning loss is a reason to do year-round school. That is a real thing",
+      "reasoning": "Tone is objective — no loaded language — though the objectivity comes partly from underdevelopment."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "In conclusion, year-round schooling has more problems than benefits and schools should not switch to it.",
+      "reasoning": "One-sentence restatement with no synthesis; it also asserts a stronger claim (\"should not switch\") than the hedged thesis."
+     }
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "students never really get to rest. Also teachers have to redo their room and plans over and over.",
+      "reasoning": "Recurring comma splices (\"one big summer, students never really get to rest\"; \"other schools, if the calendars dont match up\") and a missing apostrophe (\"dont\")."
+     }
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "product",
+    "passes": [
+     2,
+     2,
+     3
+    ],
+    "evidence": [
+     {
+      "quote": "studies show the total learning is about the same either way",
+      "reasoning": "ADVISORY: several independent reasons, not integrated (multistructural); the redistribution insight from planning is present only as an assertion. Teacher judgment requested."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "turnId": 1,
+      "quote": "it's that for districts like ours, the costs and disruption outweigh the achievement benefits",
+      "reasoning": "The student articulates a precise conditional claim with scope conditions, unprompted — level-4/5 claim formation in his own words."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "trace",
+    "passes": [
+     4,
+     3,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 1,
+      "quote": "It's not that year-round calendars are always bad",
+      "reasoning": "The student explicitly distinguishes his position from the blanket opposing framing before drafting."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 3,
+      "quote": "the key is the Wake County and San Diego studies: when researchers compared year-round and traditional calendars, total annual learning came out about the same",
+      "reasoning": "The student selects named comparative studies and articulates exactly what they show — evidence selection and relevance reasoning originate with him."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "trace",
+    "passes": [
+     5,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "turnId": 3,
+      "quote": "I have to concede that instead of pretending it isn't",
+      "reasoning": "The student develops the counterclaim in its strongest form, concedes what is valid, and articulates the redistribution rebuttal (\"it doesn't disappear\") himself."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     3
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "this is supposed to be aimed at a school board, so I should lead with what they care about: budget first",
+      "reasoning": "ADVISORY: explicit audience analysis driving structural choices. Teacher judgment requested."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "trace",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 7,
+      "quote": "if I defuse learning loss first, the budget argument reads like an afterthought. I'll keep cost first but signal early that I'll address achievement",
+      "reasoning": "The student reasons about sequencing tradeoffs, disagrees with the assistant, and invents a forward-reference solution — sophisticated ordering logic."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "trace",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "turnId": 3,
+      "quote": "The loss gets redistributed across three intersessions instead of one summer, it doesn't disappear.",
+      "reasoning": "ADVISORY: relational reasoning — the student integrates the concession with the comparative evidence to locate the crux. Teacher judgment requested."
+     }
+    ]
+   }
+  ],
+  "layerBSegments": [
+   {
+    "segmentTurns": [
+     1,
+     2
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Brings his own conditional thesis and asks whether the distinction holds up."
+   },
+   {
+    "segmentTurns": [
+     2,
+     3,
+     4
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Develops the concession-rebuttal himself, citing comparative studies and the redistribution point."
+   },
+   {
+    "segmentTurns": [
+     4,
+     5,
+     6
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": false,
+    "evidence": "Proposes an audience-driven structure and asks a targeted question about concession placement."
+   },
+   {
+    "segmentTurns": [
+     6,
+     7,
+     8
+    ],
+    "helpSeeking": "constructive",
+    "responseUse": "constructive",
+    "verification": true,
+    "evidence": "Pushes back on the assistant’s ordering suggestion with a reasoned alternative (forward reference)."
+   },
+   {
+    "segmentTurns": [
+     8,
+     9,
+     10
+    ],
+    "helpSeeking": "active",
+    "responseUse": "active",
+    "verification": false,
+    "evidence": "Closes the session under time pressure; plan established but execution deferred to a rushed solo draft."
+   }
+  ]
+ },
+ {
+  "id": "exemplar-alex",
+  "name": "Alex M. — Adversarial parrot (guard test)",
+  "description": "Attribution-guard stress test (spec §5.4): the student’s turns contain sophisticated sentences — all copied verbatim from the assistant. A naive trace grader would credit them; the guard must score no-evidence instead. Milestone-3 exit criterion: the parrot trace does not inflate scores.",
+  "essay": "Smartphones have become the single most contested object in the American classroom. Schools should adopt structured phone-free policies during instructional time, because sustained attention is a prerequisite for learning and the design of modern devices is explicitly engineered to interrupt it. Opponents insist that phones are essential safety tools; a well-designed policy can preserve emergency access while ending the ambient distraction.\n\nThe scale of the interruption problem is measurable. A 2023 Common Sense Media report found that students receive a median of 237 notifications a day, with roughly a quarter arriving during school hours. Attention research is unambiguous that recovering focus after an interruption takes far longer than the interruption itself. When a classroom of thirty students absorbs hundreds of buzzes per period, the cumulative cost is not marginal; it is structural.\n\nThe strongest objection comes from parents who remember school emergencies and want a direct line to their children. This concern deserves respect rather than dismissal. But structured policies do not confiscate phones into the void: pouch-based and locker-based systems keep devices in the building and accessible in genuine emergencies, and school offices remain reachable at all times. Safety experts have also noted that during actual lockdowns, silence and attention to instructions matter more than a thousand simultaneous outgoing calls.\n\nOthers contend that students must learn self-regulation with the tools they will carry for life, and that bans outsource discipline the students should be building. The point is fair as far as it goes. Yet self-regulation is precisely what notification engineering is designed to defeat, and expecting adolescents to out-discipline a billion-dollar attention industry during algebra is not a developmental strategy; it is abdication.\n\nPhone-free instructional time is not a rejection of technology; it is a decision about when attention belongs to learning. Districts that implemented structured policies report calmer hallways, more conversation at lunch, and measurable gains in engagement. Schools should adopt pouch-based phone-free policies for instructional hours, with clear emergency protocols, and evaluate the results after one year. The phones will survive the school day. The question is whether focus can survive the phones.",
+  "trace": {
+   "traceId": "trace-alex-001",
+   "assignmentId": "arg-essay-q4",
+   "turns": [
+    {
+     "turnId": 1,
+     "speaker": "student",
+     "text": "i need to write an argument essay about banning phones in schools. what should my thesis be"
+    },
+    {
+     "turnId": 2,
+     "speaker": "assistant",
+     "text": "Here is a defensible thesis you could adapt: \"Schools should adopt structured phone-free policies during instructional time, because sustained attention is a prerequisite for learning and the design of modern devices is explicitly engineered to interrupt it.\""
+    },
+    {
+     "turnId": 3,
+     "speaker": "student",
+     "text": "ok so my thesis is: Schools should adopt structured phone-free policies during instructional time, because sustained attention is a prerequisite for learning and the design of modern devices is explicitly engineered to interrupt it. what next"
+    },
+    {
+     "turnId": 4,
+     "speaker": "assistant",
+     "text": "Next you need evidence. A strong statistic: a 2023 Common Sense Media report found that students receive a median of 237 notifications a day, with roughly a quarter arriving during school hours. You should also plan a counterargument — the most common is parent safety concerns."
+    },
+    {
+     "turnId": 5,
+     "speaker": "student",
+     "text": "so i'll write: a 2023 Common Sense Media report found that students receive a median of 237 notifications a day, with roughly a quarter arriving during school hours. and then the counterargument is parents and safety. what do i say about that"
+    },
+    {
+     "turnId": 6,
+     "speaker": "assistant",
+     "text": "You could argue: pouch-based and locker-based systems keep devices in the building and accessible in genuine emergencies, and school offices remain reachable at all times. That concedes the concern while showing the policy handles it."
+    },
+    {
+     "turnId": 7,
+     "speaker": "student",
+     "text": "ok i will say that. pouch-based and locker-based systems keep devices in the building and accessible in genuine emergencies. is that everything or do i need another counterargument"
+    },
+    {
+     "turnId": 8,
+     "speaker": "assistant",
+     "text": "One more strengthens it: the self-regulation objection — students should learn to manage their own attention. A response: self-regulation is precisely what notification engineering is designed to defeat."
+    },
+    {
+     "turnId": 9,
+     "speaker": "student",
+     "text": "ok. self-regulation is precisely what notification engineering is designed to defeat. can you make the ending sound smarter, like a mic drop"
+    },
+    {
+     "turnId": 10,
+     "speaker": "assistant",
+     "text": "Closing suggestion: \"The phones will survive the school day. The question is whether focus can survive the phones.\""
+    }
+   ]
+  },
+  "scoreSeeds": [
+   {
+    "criterionId": "W1a-1",
+    "channel": "product",
+    "passes": [
+     5,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "Schools should adopt structured phone-free policies during instructional time, because sustained attention is a prerequisite for learning",
+      "reasoning": "Precise, arguable claim with a stated causal basis."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "Opponents insist that phones are essential safety tools; a well-designed policy can preserve emergency access while ending the ambient distraction.",
+      "reasoning": "Opposing claim stated and the writer’s claim distinguished from it in the introduction."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "students receive a median of 237 notifications a day, with roughly a quarter arriving during school hours",
+      "reasoning": "Named, specific evidence attached to the attention reason."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "product",
+    "passes": [
+     4,
+     5,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "This concern deserves respect rather than dismissal.",
+      "reasoning": "Two counterclaims developed fairly (safety, self-regulation), each conceded in part and rebutted."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "product",
+    "passes": [
+     4,
+     3,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The strongest objection comes from parents who remember school emergencies",
+      "reasoning": "Framing addresses parent and administrator concerns directly."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The point is fair as far as it goes. Yet self-regulation is precisely what notification engineering is designed to defeat",
+      "reasoning": "Concession and contrast signaled exactly at the logical turns."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "The strongest objection comes from parents",
+      "reasoning": "Deliberate order: problem scale, strongest objection, weaker objection, close."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "the cumulative cost is not marginal; it is structural",
+      "reasoning": "Formal register with controlled parallelism."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "product",
+    "passes": [
+     3,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "it is abdication",
+      "reasoning": "Mostly objective; a few charged formulations (\"abdication\", \"billion-dollar attention industry\") edge toward loaded phrasing."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "The phones will survive the school day. The question is whether focus can survive the phones.",
+      "reasoning": "Conclusion synthesizes and issues a concrete, evaluable policy ask."
+     }
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "product",
+    "passes": [
+     5,
+     5,
+     5
+    ],
+    "evidence": [
+     {
+      "quote": "the cumulative cost is not marginal; it is structural",
+      "reasoning": "Essentially error-free; punctuation used rhetorically."
+     }
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "product",
+    "passes": [
+     4,
+     4,
+     4
+    ],
+    "evidence": [
+     {
+      "quote": "expecting adolescents to out-discipline a billion-dollar attention industry during algebra is not a developmental strategy",
+      "reasoning": "ADVISORY: objections integrated and disposed of at the level of principle. Teacher judgment requested."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     1
+    ],
+    "evidence": [
+     {
+      "turnId": 3,
+      "quote": "ok so my thesis is: Schools should adopt structured phone-free policies during instructional time",
+      "reasoning": "ATTRIBUTION GUARD: the thesis in the student turn is a verbatim copy of assistant turn 2. Parroted text is not evidence of student claim formation."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1a-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1b-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     1,
+     "no-evidence"
+    ],
+    "evidence": [
+     {
+      "turnId": 5,
+      "quote": "so i'll write: a 2023 Common Sense Media report found that students receive a median of 237 notifications a day",
+      "reasoning": "ATTRIBUTION GUARD: the statistic is copied verbatim from assistant turn 4; the student performs no selection or relevance evaluation of his own."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-2",
+    "channel": "trace",
+    "passes": [
+     1,
+     "no-evidence",
+     "no-evidence"
+    ],
+    "evidence": [
+     {
+      "turnId": 7,
+      "quote": "ok i will say that.",
+      "reasoning": "ATTRIBUTION GUARD: counterclaim handling is accepted wholesale from the assistant; the student’s own contribution is assent."
+     }
+    ]
+   },
+   {
+    "criterionId": "W1b-3",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1c-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1d-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1d-2",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "W1e-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "L1-1",
+    "channel": "trace",
+    "passes": [
+     "no-evidence",
+     "no-evidence",
+     "no-evidence"
+    ]
+   },
+   {
+    "criterionId": "WR-1",
+    "channel": "trace",
+    "passes": [
+     1,
+     1,
+     "no-evidence"
+    ],
+    "evidence": [
+     {
+      "turnId": 9,
+      "quote": "can you make the ending sound smarter, like a mic drop",
+      "reasoning": "ADVISORY: the student’s own reasoning concerns surface impressiveness, not argument quality — prestructural. Teacher judgment requested."
+     }
+    ]
+   }
+  ],
+  "layerBSegments": [
+   {
+    "segmentTurns": [
+     1,
+     2
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Asks the assistant to supply the thesis outright (\"what should my thesis be\")."
+   },
+   {
+    "segmentTurns": [
+     2,
+     3,
+     4
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Copies the assistant’s thesis back verbatim and asks \"what next\"."
+   },
+   {
+    "segmentTurns": [
+     4,
+     5,
+     6
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Repeats the supplied statistic verbatim; asks what to say about the counterargument."
+   },
+   {
+    "segmentTurns": [
+     6,
+     7,
+     8
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Accepts the counterargument handling wholesale (\"ok i will say that\")."
+   },
+   {
+    "segmentTurns": [
+     8,
+     9,
+     10
+    ],
+    "helpSeeking": "passive",
+    "responseUse": "passive",
+    "verification": false,
+    "evidence": "Copies the self-regulation rebuttal verbatim; requests a \"mic drop\" ending."
+   }
+  ]
+ }
+]

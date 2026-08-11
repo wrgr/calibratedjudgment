@@ -1,0 +1,15 @@
+# Single-container deployment: builds the SPA, then serves API + static bundle
+# from one uvicorn process on :8000. For development prefer `make dev`.
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false   # runs in keyword-fallback mode without keys
+    volumes:
+      - app-data:/app/backend/data
+
+volumes:
+  app-data:

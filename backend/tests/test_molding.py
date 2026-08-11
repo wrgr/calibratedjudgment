@@ -1,0 +1,235 @@
+"""Unit tests for molding.py — the attempt-5 per-criterion style
+reconciliation-note mechanism. These focus on the three defense layers
+against a "note" becoming a disguised full anchor rewrite: structural input
+restriction, output-side filtering, and cache-key correctness."""
+
+import pytest
+
+from app.db import database as db
+from app.services.grading import molding
+
+# These tests hit the style_molds cache table directly (no TestClient/fixture
+# involved), so make sure the schema exists regardless of test collection order.
+db.init_db()
+
+
+def _rubric():
+    return {
+        "criteria": [
+            {"criterionId": "W1a-1", "dimension": "Claims", "statement": "States a claim.",
+             "anchors": {"0": "No claim.", "5": "Precise claim."}},
+            {"criterionId": "W1d-1", "dimension": "Style & Tone",
+             "statement": "Maintains a formal style.", "styleEligible": True,
+             "anchors": {"0": "Consistently informal.", "5": "Formal and precise."}},
+        ]
+    }
+
+
+def test_eligible_criteria_filters_by_flag():
+    elig = molding.eligible_criteria(_rubric())
+    assert [c["criterionId"] for c in elig] == ["W1d-1"]
+
+
+def test_build_mold_prompt_omits_ineligible_criterion_text():
+    rubric = _rubric()
+    prompt = molding.build_mold_prompt(molding.eligible_criteria(rubric), "be lenient")
+    assert "States a claim" not in prompt
+    assert "No claim." not in prompt
+    assert "Maintains a formal style" in prompt
+
+
+def test_mold_notes_drops_note_for_non_eligible_criterion_id():
+    rubric = _rubric()
+
+    def fake_llm(system, prompt):
+        return {"notes": [
+            {"criterionId": "W1d-1", "note": "A real note."},
+            {"criterionId": "W1a-1", "note": "Sneaky note for an ineligible criterion."},
+        ]}
+
+    notes = molding.mold_notes(fake_llm, rubric, "be lenient")
+    assert "W1a-1" not in notes
+    assert notes["W1d-1"] == "A real note."
+
+
+def test_mold_notes_truncates_oversized_note():
+    rubric = _rubric()
+    long_note = "x" * 2000
+
+    def fake_llm(system, prompt):
+        return {"notes": [{"criterionId": "W1d-1", "note": long_note}]}
+
+    notes = molding.mold_notes(fake_llm, rubric, "be lenient")
+    assert len(notes["W1d-1"]) == molding.MAX_NOTE_CHARS
+
+
+def test_mold_notes_retries_once_then_succeeds():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def flaky_llm(system, prompt):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("transient")
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    notes = molding.mold_notes(flaky_llm, rubric, "be lenient")
+    assert calls["n"] == 2
+    assert notes["W1d-1"] == "ok"
+
+
+def test_mold_notes_short_circuits_on_empty_style_or_no_eligible():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def counting_llm(system, prompt):
+        calls["n"] += 1
+        return {"notes": []}
+
+    assert molding.mold_notes(counting_llm, rubric, "") == {}
+    assert molding.mold_notes(counting_llm, {"criteria": []}, "be lenient") == {}
+    assert calls["n"] == 0
+
+
+def test_validate_mold_rejects_non_eligible_criterion_id():
+    elig = molding.eligible_criteria(_rubric())
+    assert not molding.validate_mold({"W1a-1": "sneaky"}, elig)
+
+
+def test_validate_mold_rejects_anchor_rewrite_fingerprint():
+    elig = molding.eligible_criteria(_rubric())
+    rewrite = "0: No style at all.\n1: Barely.\n2: Some.\n3: Mostly.\n4: Good.\n5: Great."
+    assert not molding.validate_mold({"W1d-1": rewrite}, elig)
+
+
+def test_validate_mold_accepts_a_real_scoped_note():
+    elig = molding.eligible_criteria(_rubric())
+    assert molding.validate_mold({"W1d-1": "A short, scoped note."}, elig)
+
+
+def test_get_or_mold_notes_cache_hit_avoids_second_llm_call():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def counting_llm(system, prompt):
+        calls["n"] += 1
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    kwargs = dict(content_id="test-rubric", version="1.0", rubric=rubric,
+                 grading_style="be lenient")
+    first = molding.get_or_mold_notes(counting_llm, **kwargs)
+    second = molding.get_or_mold_notes(counting_llm, **kwargs)
+    assert first == second == {"W1d-1": "ok"}
+    assert calls["n"] == 1
+
+
+def test_get_or_mold_notes_cache_key_sensitive_to_style_text_and_version():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def counting_llm(system, prompt):
+        calls["n"] += 1
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    molding.get_or_mold_notes(counting_llm, content_id="test-rubric-2", version="1.0",
+                              rubric=rubric, grading_style="be lenient")
+    molding.get_or_mold_notes(counting_llm, content_id="test-rubric-2", version="1.0",
+                              rubric=rubric, grading_style="be lenient!")  # one char different
+    molding.get_or_mold_notes(counting_llm, content_id="test-rubric-2", version="2.0",
+                              rubric=rubric, grading_style="be lenient!")  # version bump
+    assert calls["n"] == 3
+
+
+def test_get_or_mold_notes_retries_after_validation_failure():
+    """A validate_mold() failure (as opposed to mold_notes' own filtering) must
+    NOT be cached — otherwise one bad LLM response permanently suppresses
+    style molding for that rubric/style/intensity until the instructor edits
+    their style text, since nothing else changes the cache key."""
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def bad_llm(system, prompt):
+        calls["n"] += 1
+        # Eligible criterion id + non-empty note, so it survives mold_notes'
+        # filtering intact — but the "ANCHORED LEVELS" fingerprint makes it
+        # fail validate_mold's anti-rewrite check.
+        return {"notes": [{"criterionId": "W1d-1",
+                           "note": "See ANCHORED LEVELS above for guidance."}]}
+
+    result = molding.get_or_mold_notes(bad_llm, content_id="test-rubric-3", version="1.0",
+                                       rubric=rubric, grading_style="be lenient")
+    assert result == {}
+    # A validation failure isn't cached, so the second call must re-invoke the LLM.
+    result2 = molding.get_or_mold_notes(bad_llm, content_id="test-rubric-3", version="1.0",
+                                        rubric=rubric, grading_style="be lenient")
+    assert result2 == {}
+    assert calls["n"] == 2
+
+
+# ---- Attempt 6: intensity slider ----
+
+def test_build_mold_system_wording_differs_by_intensity():
+    subtle = molding.build_mold_system("subtle")
+    moderate = molding.build_mold_system("moderate")
+    strong = molding.build_mold_system("strong")
+    assert subtle != moderate != strong
+    assert "lean toward the anchors' literal language" in subtle
+    assert "let the stated style tip the balance" in moderate
+    assert "Actively favor the interpretation" in strong
+
+
+def test_build_mold_system_unknown_intensity_falls_back_to_default():
+    assert molding.build_mold_system("nonsense") == molding.build_mold_system(molding.DEFAULT_INTENSITY)
+
+
+def test_get_or_mold_notes_cache_key_sensitive_to_intensity():
+    rubric = _rubric()
+    calls = {"n": 0}
+
+    def counting_llm(system, prompt):
+        calls["n"] += 1
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    kwargs = dict(content_id="test-rubric-intensity", version="1.0", rubric=rubric,
+                 grading_style="be lenient")
+    molding.get_or_mold_notes(counting_llm, intensity="subtle", **kwargs)
+    molding.get_or_mold_notes(counting_llm, intensity="subtle", **kwargs)  # cache hit
+    molding.get_or_mold_notes(counting_llm, intensity="strong", **kwargs)  # different intensity -> fresh mold
+    assert calls["n"] == 2
+
+
+def test_get_or_mold_notes_defaults_to_moderate_intensity():
+    rubric = _rubric()
+    captured = {}
+
+    def capturing_llm(system, prompt):
+        captured["system"] = system
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    molding.get_or_mold_notes(capturing_llm, content_id="test-rubric-default", version="1.0",
+                              rubric=rubric, grading_style="be lenient")
+    assert captured["system"] == molding.build_mold_system("moderate")
+
+
+# ---- Traceability: intensity + mold-prompt-version stamped on style_molds ----
+
+def test_get_or_mold_notes_stores_intensity_and_prompt_version_on_row():
+    """style_molds rows must record which intensity and which molding-prompt
+    version produced them, so a future wording change to build_mold_system/
+    _INTENSITY_CLAUSE is distinguishable from old cached rows rather than
+    silently indistinguishable under an identical-looking cache key."""
+    rubric = _rubric()
+
+    def fake_llm(system, prompt):
+        return {"notes": [{"criterionId": "W1d-1", "note": "ok"}]}
+
+    molding.get_or_mold_notes(fake_llm, content_id="test-rubric-prov", version="1.0",
+                              rubric=rubric, grading_style="be lenient", intensity="strong")
+
+    style_hash = molding._style_hash("be lenient")
+    cache_key = f"test-rubric-prov:1.0:{style_hash}:strong:{molding.MOLD_PROMPT_VERSION}"
+    with db._conn() as c:
+        row = c.execute("SELECT intensity, mold_prompt_version FROM style_molds WHERE cache_key=?",
+                        (cache_key,)).fetchone()
+    assert row["intensity"] == "strong"
+    assert row["mold_prompt_version"] == molding.MOLD_PROMPT_VERSION

@@ -1,3 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Node
 node_modules/
-dist/
-*.local
+frontend/dist/
+*.tsbuildinfo
+
+# Data & secrets — never commit
+.env
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+backend/reports/
+
+# OS / editor
+.DS_Store
