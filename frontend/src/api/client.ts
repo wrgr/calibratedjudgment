@@ -5,6 +5,13 @@
 // BYO key: when the user saved their own provider key in Settings, it lives in
 // localStorage only and rides along on each request as X-LLM-* headers — the
 // server uses it for that call and never stores it.
+//
+// Static (GitHub Pages) build: there is no server. When VITE_STATIC=1 every
+// request is dispatched to the in-browser backend (src/local/backend.ts),
+// loaded lazily so the normal build never bundles it. The BYO key is passed
+// through the same X-LLM-* headers the local backend reads.
+
+import { isStatic } from '../local/mode';
 
 export class ApiError extends Error {
   status: number;
@@ -56,7 +63,31 @@ function byoKeyHeaders(): Record<string, string> {
   };
 }
 
+// Lazily-loaded static backend (only reached when isStatic()); dynamic import
+// keeps it out of the normal /api build entirely.
+let staticHandler: Promise<typeof import('../local/backend')> | null = null;
+function localBackend() {
+  return (staticHandler ??= import('../local/backend'));
+}
+
+async function requestStatic<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const { handle } = await localBackend();
+  const headers = byoKeyHeaders();
+  const lower: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) lower[k.toLowerCase()] = v;
+  const { status, body: out } = await handle(method, path, body as Record<string, unknown> | undefined, lower);
+  if (status >= 400) {
+    const detail = out && typeof out === 'object' && typeof (out as { detail?: unknown }).detail === 'string'
+      ? (out as { detail: string }).detail
+      : `Request failed (${status})`;
+    throw new ApiError(status, detail);
+  }
+  if (status === 204) return undefined as T;
+  return out as T;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  if (isStatic()) return requestStatic<T>(method, path, body);
   const res = await fetch(path, {
     method,
     credentials: 'same-origin',

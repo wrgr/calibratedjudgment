@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api, clearByoKey, loadByoKey, saveByoKey } from '../api/client';
 import { useAuth } from '../auth';
 import type { User } from '../auth';
 import { useTour } from '../components/Tour';
+import { isStatic } from '../local/mode';
+import { downloadJSON } from '../types';
 
 interface ProviderInfo {
   name: string;
@@ -24,6 +26,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const { start: startTour } = useTour();
 
+  const staticMode = isStatic();
   const providers = data?.providers ?? [];
   const configured = providers.filter((p) => p.configured);
   const selected = configured.find((p) => p.name === (provider || data?.default)) ?? configured[0];
@@ -67,6 +70,7 @@ export default function Settings() {
           </div>
         </div>
 
+        {!staticMode && (
         <div data-tour="settings-server" className="card max-w-xl p-5">
           <div className="panel-title">Server LLM preferences</div>
           <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
@@ -137,10 +141,101 @@ export default function Settings() {
             </>
           )}
         </div>
+        )}
 
-        <ByoKeyCard providers={providers} defaultProvider={data?.default ?? ''} />
+        <ByoKeyCard providers={providers} defaultProvider={data?.default ?? ''} staticMode={staticMode} />
+
+        {staticMode && <DataCard />}
       </div>
 
+    </div>
+  );
+}
+
+/** Static build only: the whole app state lives in this browser. Let the user
+ *  carry it between machines as a JSON file, load one back, or reset to the
+ *  bundled demo. The BYO API key is intentionally excluded from the export. */
+function DataCard() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function download() {
+    const store = await import('../local/store');
+    downloadJSON('calibrated-judgment-data.json', store.exportState());
+    setStatus('Downloaded. Your API key is not included in this file.');
+  }
+
+  async function load(file: File) {
+    const store = await import('../local/store');
+    try {
+      const parsed = JSON.parse(await file.text());
+      const res = store.importState(parsed);
+      if (!res.ok) {
+        setStatus(res.error ?? 'Could not load that file.');
+        return;
+      }
+      setStatus('Loaded. Reloading…');
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function reset() {
+    if (!confirm('Reset to the bundled demo? Your sessions, edits, and overrides in this browser will be discarded.')) return;
+    const store = await import('../local/store');
+    store.resetToDemo();
+    setStatus('Reset. Reloading…');
+    setTimeout(() => window.location.reload(), 600);
+  }
+
+  return (
+    <div className="card max-w-xl p-5">
+      <div className="panel-title">Your data (this browser)</div>
+      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+        Everything you do here — sessions, grades, rubric edits, overrides — is stored only in this
+        browser. Download it as a JSON file to back it up or move it to another machine, then load it
+        back anywhere. Your API key is never written to this file.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          className="rounded-sm px-4 py-2 text-sm font-semibold text-white"
+          style={{ background: 'var(--accent)' }}
+          onClick={() => void download()}
+        >
+          Download my data
+        </button>
+        <button
+          className="rounded-sm border px-3 py-2 text-sm"
+          style={{ borderColor: 'var(--gridline)' }}
+          onClick={() => fileRef.current?.click()}
+        >
+          Load from file
+        </button>
+        <button
+          className="rounded-sm border px-3 py-2 text-sm"
+          style={{ borderColor: 'var(--gridline)', color: 'var(--status-critical)' }}
+          onClick={() => void reset()}
+        >
+          Reset to demo
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void load(f);
+            e.target.value = '';
+          }}
+        />
+      </div>
+      {status && (
+        <div className="mt-2 text-xs" role="status" style={{ color: 'var(--ink-muted)' }}>
+          {status}
+        </div>
+      )}
     </div>
   );
 }
@@ -163,9 +258,10 @@ function EyeIcon({ off }: { off: boolean }) {
 /** Bring-your-own key: stored in THIS browser's localStorage only, sent with each
  *  of your grading requests as headers, used transiently by the server, never
  *  persisted or logged there. Takes precedence over the server key while set. */
-function ByoKeyCard({ providers, defaultProvider }: {
+function ByoKeyCard({ providers, defaultProvider, staticMode }: {
   providers: ProviderInfo[];
   defaultProvider: string;
+  staticMode: boolean;
 }) {
   const existing = loadByoKey();
   const [provider, setProvider] = useState(existing?.provider || defaultProvider || providers[0]?.name || '');
@@ -215,7 +311,7 @@ function ByoKeyCard({ providers, defaultProvider }: {
   return (
     <div data-tour="settings-byo" className="card max-w-xl p-5">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="panel-title">Use your own API key (optional)</div>
+        <div className="panel-title">{staticMode ? 'Your API key' : 'Use your own API key (optional)'}</div>
         {active && (
           <span className="rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white" style={{ background: 'var(--status-good-strong)' }}>
             active in this browser
@@ -223,9 +319,20 @@ function ByoKeyCard({ providers, defaultProvider }: {
         )}
       </div>
       <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
-        Your key is stored only in this browser and sent along with each of <i>your</i> grading
-        requests; the server uses it for that call and never stores or logs it. While set, it takes
-        precedence over the server key. Any provider below works — including ones without a server key.
+        {staticMode ? (
+          <>
+            Live grading and the writing-session chat call the provider <i>directly from your browser</i>{' '}
+            with the key you set here. It is stored only in this browser, never uploaded, and never
+            included in your downloadable data. Pick any provider below. (Some providers block direct
+            browser calls; Claude and Gemini are the most reliable for a keyless-server setup.)
+          </>
+        ) : (
+          <>
+            Your key is stored only in this browser and sent along with each of <i>your</i> grading
+            requests; the server uses it for that call and never stores or logs it. While set, it takes
+            precedence over the server key. Any provider below works — including ones without a server key.
+          </>
+        )}
       </p>
 
       <label className="mt-4 block text-xs font-semibold" htmlFor="byo-provider">

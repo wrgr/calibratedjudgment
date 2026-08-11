@@ -3,7 +3,7 @@ VENV = backend/.venv
 PIP = $(VENV)/bin/pip
 PYTHON = $(VENV)/bin/python
 
-.PHONY: setup backend-setup frontend-setup dev api web seed test e2e build gen-api
+.PHONY: setup backend-setup frontend-setup dev api web seed test e2e build build-static preview-static gen-api gen-demo
 
 setup: backend-setup frontend-setup
 
@@ -38,6 +38,20 @@ e2e:
 
 build:
 	cd frontend && npm run build
+
+# Backend-free static build (what GitHub Pages ships): the browser is its own
+# backend — bundled demo data + client-side grading with a bring-your-own key.
+build-static:
+	cd frontend && VITE_STATIC=1 npm run build
+
+# Serve the static build locally to smoke-test the Pages bundle.
+preview-static: build-static
+	cd frontend && npm run preview
+
+# Regenerate the bundled demo fixtures the static build ships with (run after
+# editing content/exemplars, the rubric, or the seed users). No DB or network.
+gen-demo:
+	$(PY) scripts/gen_demo_fixtures.py
 
 # Regenerate the frontend's API schema types from the live OpenAPI document.
 gen-api:

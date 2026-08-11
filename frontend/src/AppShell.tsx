@@ -1,6 +1,8 @@
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { isStaff, useAuth } from './auth';
+import type { User } from './auth';
 import { TourProvider } from './components/Tour';
+import { isStatic } from './local/mode';
 
 interface NavItem {
   to: string;
@@ -21,8 +23,14 @@ const NAV: NavItem[] = [
 ];
 
 export default function AppShell() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, refresh } = useAuth();
   const location = useLocation();
+
+  async function switchRole(role: User['role']) {
+    const store = await import('./local/store');
+    store.setRole(role);
+    await refresh();
+  }
 
   if (loading) {
     return (
@@ -45,9 +53,9 @@ export default function AppShell() {
         style={{ background: 'var(--rail-bg)', color: 'var(--rail-ink)' }}
       >
         <div className="font-display text-[1.35rem] leading-tight" style={{ fontWeight: 590 }}>
-          Assessment
+          Calibrated
           <br />
-          Platform
+          Judgment
         </div>
         <div className="mt-1.5 text-[11px] leading-snug" style={{ color: 'var(--rail-muted)' }}>
           Competence from process and product — essay traces with AI reliance.
@@ -91,12 +99,28 @@ export default function AppShell() {
           <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--rail-muted)' }}>
             {user.role}
           </div>
+          {isStatic() && (
+            <label className="mt-2 block">
+              <span className="text-[10px]" style={{ color: 'var(--rail-muted)' }}>Explore as</span>
+              <select
+                aria-label="Switch role"
+                value={user.role}
+                onChange={(e) => void switchRole(e.target.value as User['role'])}
+                className="mt-0.5 w-full rounded-sm border bg-transparent px-1.5 py-1 text-[11px]"
+                style={{ borderColor: 'var(--rail-line)', color: 'var(--rail-ink)' }}
+              >
+                <option value="student">Student</option>
+                <option value="instructor">Instructor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          )}
           <button
             onClick={() => void logout()}
             className="mt-2 rounded-sm border px-2 py-1 text-[11px]"
             style={{ borderColor: 'var(--rail-line)', color: 'var(--rail-muted)' }}
           >
-            Sign out
+            {isStatic() ? 'Switch user' : 'Sign out'}
           </button>
         </div>
       </aside>

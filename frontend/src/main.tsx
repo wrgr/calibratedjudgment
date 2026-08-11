@@ -6,6 +6,7 @@ import '@fontsource-variable/fraunces';
 import '@fontsource/ibm-plex-mono';
 import './index.css';
 import { AuthProvider } from './auth';
+import { isStatic } from './local/mode';
 import AppShell from './AppShell';
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -40,12 +41,23 @@ const router = createHashRouter([
   },
 ]);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
+async function boot() {
+  // Static build has no server: swap in the job-manager-backed EventSource
+  // before anything can open a grading stream. The api client routes /api calls
+  // to the in-browser backend on its own.
+  if (isStatic()) {
+    const { installStaticBackend } = await import('./local/install');
+    installStaticBackend();
+  }
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>,
+  );
+}
+
+void boot();
