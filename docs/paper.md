@@ -116,8 +116,8 @@ the decision [10]. Multi-sample variance as a hallucination signal is the princi
 behind our three-pass median-plus-spread aggregation [11].
 
 **LLM-as-a-judge calibration.** Judges are systematically overconfident relative to
-their accuracy, motivating routing uncertain cases to humans [12]. Post-hoc methods
-calibrate a judge's *confidence*. Our loop is different in kind: it recalibrates the
+their accuracy, motivating routing uncertain cases to humans [12] (see [24] for a
+broad survey of judge reliability). Post-hoc methods calibrate a judge's *confidence*. Our loop is different in kind: it recalibrates the
 *criterion guidance text* using accumulated human overrides, and uses inter-pass
 spread only as a lightweight uncertainty proxy for routing.
 
@@ -144,7 +144,8 @@ typology [21], and intervention studies on appropriate reliance [17].
 calibration loop. GradeHITL [3] has the LLM ask experts targeted questions and
 rewrite the rubric from their answers; GradeOpt [4] and CoTAL [5] refine
 guidelines/prompts from feedback; confusion-aware methods optimize rubrics where the
-model is systematically confused [6]. Our differentiators (§4.5): the calibration
+model is systematically confused [6]; and reflect-and-revise methods refine
+essay-scoring rubrics against observed human-score discrepancies [23]. Our differentiators (§4.5): the calibration
 corpus is *passive instructor overrides* (labels teachers produce anyway, not
 solicited Q&A); the trigger is a per-criterion override-frequency and
 signed/absolute-delta ledger; the redraft is staged as an *inactive, versioned*
@@ -441,3 +442,12 @@ N. Wilson. *The Impact of Generative AI on Critical Thinking: Self-Reported
 Reductions in Cognitive Effort and Confidence Effects From a Survey of Knowledge
 Workers.* Proc. 2025 CHI Conf. on Human Factors in Computing Systems (CHI '25).
 doi:10.1145/3706598.3713778.
+
+[23] K. Harada, L. Yoshida, T. Kojima, Y. Iwasawa, Y. Matsuo. *Automated Refinement
+of Essay Scoring Rubrics for Language Models via Reflect-and-Revise.* arXiv:2510.09030,
+2025.
+
+[24] D. Li, B. Jiang, L. Huang, A. Beigi, C. Zhao, Z. Tan, A. Bhattacharjee, et al.
+(13 authors). *From Generation to Judgment: Opportunities and Challenges of
+LLM-as-a-judge.* Proc. EMNLP 2025 (Main). ACL Anthology 2025.emnlp-main.138;
+arXiv:2411.16594.
