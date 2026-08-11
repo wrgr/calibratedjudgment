@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calibrated Judgment — Dual-Channel Rubric Scoring & Override-Driven Calibration</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #fffefb;
+    --ink: #1b1a17;
+    --muted: #57544d;
+    --faint: #78746c;
+    --line: #e4e1d8;
+    --line-strong: #d3cfc4;
+    --accent: #1f5f5b;
+    --accent-soft: #e7efec;
+    --accent-ink: #16403d;
+    --mono: ui-monospace, "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --serif: "Charter", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15161a;
+      --surface: #1b1d22;
+      --ink: #e9e7e1;
+      --muted: #a8a39a;
+      --faint: #8a857c;
+      --line: #2a2d33;
+      --line-strong: #363a41;
+      --accent: #5fb0a8;
+      --accent-soft: #1e2b2a;
+      --accent-ink: #8fd0c8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15161a;
+    --surface: #1b1d22;
+    --ink: #e9e7e1;
+    --muted: #a8a39a;
+    --faint: #8a857c;
+    --line: #2a2d33;
+    --line-strong: #363a41;
+    --accent: #5fb0a8;
+    --accent-soft: #1e2b2a;
+    --accent-ink: #8fd0c8;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .page {
+    max-width: 41rem;
+    margin: 0 auto;
+    padding: clamp(2.2rem, 5vw, 4.5rem) clamp(1.15rem, 5vw, 2rem) 5rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 650;
+    font-size: clamp(1.95rem, 5.5vw, 2.9rem);
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 0 0 0.7rem;
+  }
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 1.02rem;
+    line-height: 1.5;
+    margin: 0 0 1.6rem;
+    max-width: 34rem;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+    padding: 0.95rem 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 2.6rem;
+  }
+  .meta b { color: var(--muted); font-weight: 600; }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 640;
+    font-size: 1.34rem;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 2.9rem 0 0.85rem;
+    padding-top: 0.4rem;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin-right: 0.7rem;
+    letter-spacing: 0.02em;
+  }
+  h3 {
+    font-family: var(--serif);
+    font-weight: 640;
+    font-size: 1.06rem;
+    font-style: italic;
+    color: var(--ink);
+    margin: 1.9rem 0 0.5rem;
+  }
+  h3 .num { font-family: var(--mono); font-style: normal; font-size: 0.78rem; color: var(--faint); margin-right: 0.55rem; }
+
+  p { margin: 0 0 1.05rem; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  a:hover { border-bottom-color: var(--accent); }
+  strong { font-weight: 660; color: var(--ink); }
+  em { }
+
+  .abstract {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--accent);
+    border-radius: 3px;
+    padding: 1.3rem 1.5rem 0.6rem;
+    margin: 0 0 1.6rem;
+    font-size: 0.97rem;
+    line-height: 1.6;
+  }
+  .abstract .lead {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.7rem;
+  }
+  .abstract p { margin-bottom: 0.9rem; }
+
+  .keywords {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.4rem;
+  }
+  .keywords b { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+
+  ol.contrib, ol.plan { padding-left: 0; margin: 0 0 1.15rem; list-style: none; counter-reset: item; }
+  ol.contrib > li, ol.plan > li {
+    position: relative;
+    padding-left: 2.5rem;
+    margin-bottom: 0.8rem;
+    counter-increment: item;
+  }
+  ol.contrib > li::before, ol.plan > li::before {
+    content: counter(item);
+    position: absolute;
+    left: 0;
+    top: 0.05em;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-soft);
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+
+  ul.frames { list-style: none; padding-left: 0; margin: 0 0 1.15rem; }
+  ul.frames > li { position: relative; padding-left: 1.2rem; margin-bottom: 0.7rem; }
+  ul.frames > li::before {
+    content: "";
+    position: absolute; left: 0; top: 0.72em;
+    width: 0.42rem; height: 0.42rem; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .divider { border: 0; border-top: 1px solid var(--line); margin: 3rem 0 0; }
+
+  .refs { margin-top: 1rem; }
+  .refs ol { list-style: none; counter-reset: ref; padding-left: 0; margin: 0; }
+  .refs li {
+    counter-increment: ref;
+    position: relative;
+    padding-left: 2.6rem;
+    margin-bottom: 0.72rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: -0.01em;
+  }
+  .refs li::before {
+    content: "[" counter(ref) "]";
+    position: absolute; left: 0; top: 0;
+    color: var(--accent);
+  }
+  .refs li i { font-style: italic; color: var(--ink); font-family: var(--serif); }
+
+  .endnote {
+    font-size: 0.8rem;
+    color: var(--faint);
+    font-style: italic;
+    margin-top: 2.4rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+  .endnote a { color: var(--accent); }
+
+  ::selection { background: var(--accent-soft); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+</style>
+
+<style>
+  @page { margin: 16mm; }
+  @media print {
+    :root { color-scheme: light; }
+    body { background: #ffffff; }
+    a { border-bottom: none; }
+    h2, h3 { break-after: avoid; }
+    .abstract, .refs li, ol.contrib > li, ul.frames > li { break-inside: avoid; }
+  }
+</style>
+
+</head>
+<body>
+<article class="page">
+  <p class="eyebrow">System &amp; Methodology · Working Draft</p>
+  <h1>Calibrated Judgment: Dual-Channel Rubric Scoring and Override-Driven Calibration for AI-Assisted Student Writing</h1>
+  <p class="subtitle">Grade the same rubric twice — against the finished essay and against the dialogue that produced it — and treat the signed gap between them as the object of measurement.</p>
+  <div class="meta">
+    <span><b>Target venue</b>&nbsp; LAK · alt. L@S, BEA</span>
+    <span><b>Status</b>&nbsp; design + mechanism; validation is future work</span>
+    <span><b>Artifact</b>&nbsp; calibratedjudgment.org</span>
+  </div>
+
+  <div class="abstract">
+    <p class="lead">Abstract</p>
+    <p>A finished essay tells you what was produced but not who produced it — an increasingly load-bearing distinction now that every student writes beside a capable AI assistant. We present <strong>Calibrated Judgment</strong>, a writing-assessment platform built on a simple structural idea: grade the <em>same</em> argumentative-writing rubric <strong>twice</strong> — once against the finished essay (the <em>product</em> channel) and once against the transcript of the student's dialogue with an AI assistant (the <em>process</em> / <em>trace</em> channel) — and treat the <strong>signed gap between the two</strong> as the primary analytic construct. A large product-over-process gap paired with a passive reliance profile is a hypothesis of over-reliance; a process-over-product gap is an execution/transfer gap; convergence with constructive engagement is the strongest case for reading the scores at face value.</p>
+    <p>Three mechanisms make the dual-channel signal trustworthy enough to act on. (1) <strong>Halo-controlled, criterion-referenced LLM scoring</strong>: one rubric criterion per model call, three passes, reported as a median with an inter-pass spread, and an <strong>evidence-provenance guard</strong> that drops any justification whose quotes do not appear verbatim in the source. (2) A <strong>student-attribution guard</strong> that reframes authorship attribution as an <em>evidence-admissibility</em> rule: on the process channel, assistant-authored text — even copied back verbatim — is inadmissible as evidence of the student's own mastery. (3) An <strong>override-driven, per-criterion calibration loop</strong>: instructor overrides accumulate as a labeled miscalibration ledger; a reliability dashboard surfaces criteria the model is consistently wrong about; and the system drafts replacement guidance from the override history, staged as an <em>inactive, versioned</em> rubric a human must publish. Every score is stamped with the exact rubric version that produced it, making "I changed the guidance, re-graded, and the score moved" a reproducible claim rather than an anecdote.</p>
+    <p>We argue the dual-channel divergence framing and the versioned, override-driven calibration discipline are the contributions with no direct prior equal, and we lay out the validation study the design is built to support.</p>
+  </div>
+
+  <p class="keywords"><b>Keywords —</b> automated essay scoring; LLM-as-a-judge; process vs. product assessment; AI reliance; human-in-the-loop calibration; evidence-centered design; academic integrity.</p>
+
+  <h2><span class="num">1</span>Introduction</h2>
+  <p>Automated and LLM-assisted essay scoring has become good enough to be tempting and not yet good enough to be trusted. The problem is no longer only measurement noise; it is a shift in <em>what a finished artifact can testify to</em>. When a student submits an essay written with an AI assistant, the text is evidence of a <strong>joint</strong> human–AI product, and the rubric score — however well-calibrated — silently attributes the whole of it to the student.</p>
+  <p>Existing responses split along two lines. <strong>Detection</strong> approaches ask whether a text was AI-written, either from the text itself or from behavioral traces such as keystroke logs&nbsp;[13]; these are authenticity classifiers, not competence estimates. <strong>Process-oriented</strong> approaches grade the writing process, but typically score prompt quality or interaction features on a <em>separate</em> instrument from the one used to grade the essay&nbsp;[14], so process and product are not directly comparable.</p>
+  <p>We take a different structural stance. If the goal is to estimate a student's <em>own</em> writing mastery in an AI-assisted setting, then the dialogue the student had with the assistant is a second, independent source of evidence about the <em>same</em> rubric criteria. Scoring both channels on the same atomic criteria makes their disagreement meaningful: the <strong>product-minus-process divergence</strong>, read per rubric dimension, becomes a formative signal about where the artifact may be outrunning the student — or where the student's demonstrated understanding is not making it into the artifact.</p>
+  <p>This paper contributes:</p>
+  <ol class="contrib">
+    <li><strong>A dual-channel divergence construct</strong> (§4.4): the same argumentative-writing rubric applied to both the essay and the AI-dialogue trace, with a signed per-dimension gap interpreted directionally as a hypothesis, not a verdict.</li>
+    <li><strong>A student-attribution guard as evidence-admissibility</strong> (§4.2): assistant-authored text is inadmissible as evidence of student mastery, enforced by prompt constraint <em>and</em> an engine-side verbatim quote-in-student-turn check, and stress-tested by an adversarial "parrot" exemplar.</li>
+    <li><strong>An override-driven, per-criterion, versioned calibration loop</strong> (§4.5): instructor overrides as a passive miscalibration ledger, a per-criterion reliability dashboard, human-gated LLM-drafted guidance staged as an inactive rubric version, and per-score version stamping for reproducibility.</li>
+    <li><strong>A deployable reference implementation</strong> (§5) whose grading engine runs both server-side and, unchanged in behavior, entirely client-side in a bring-your-own-key static web build — lowering the barrier to adoption and independent replication.</li>
+  </ol>
+  <p>We are explicit about scope: this is a <strong>design and mechanism</strong> contribution. The platform produces evidence and its own uncertainty, not certified grades, and we have not yet run the human-agreement study that would license validity claims. §6 specifies that study.</p>
+
+  <h2><span class="num">2</span>Related work</h2>
+  <p><strong>LLM-based automated essay scoring (AES).</strong> Recent work finds that criterion-referenced, per-dimension prompting aligns best with human judgment, that adding free-text justifications does <em>not</em> reliably improve concordance, and that lower decoding temperature helps&nbsp;[8]; grading-scale granularity also matters, with 0–5 scales maximizing human–LLM alignment&nbsp;[9]. Two well-documented failure modes shape our guards: <strong>halo/order effects and non-independence across criteria</strong>, whose recommended mitigation is to score each criterion in a separate call and ensemble across samples; and <strong>unfaithful self-explanation</strong>, where rationales are coherent but not causally tied to the decision&nbsp;[10]. Multi-sample variance as a hallucination signal is the principle behind our three-pass median-plus-spread aggregation&nbsp;[11].</p>
+  <p><strong>LLM-as-a-judge calibration.</strong> Judges are systematically overconfident relative to their accuracy, motivating routing uncertain cases to humans&nbsp;[12] (see&nbsp;[24] for a broad survey of judge reliability). Post-hoc methods calibrate a judge's <em>confidence</em>. Our loop is different in kind: it recalibrates the <em>criterion guidance text</em> using accumulated human overrides, and uses inter-pass spread only as a lightweight uncertainty proxy for routing.</p>
+  <p><strong>Process vs. product; capability gaps.</strong> Keystroke-log methods distinguish authentic composition from transcription with high accuracy&nbsp;[13] but operate on timing, not on the semantic content of the human–AI dialogue. Dashboards that rubric-score the dialogue score prompt quality for feedback rather than applying the essay's rubric to enable a divergence comparison&nbsp;[14]. Capability-gap studies typically estimate over-reliance from <em>separate</em> assisted-vs-independent tasks&nbsp;[16], and find that students' <em>self-reported</em> reliance does not track the actual competence gap&nbsp;[15] — a direct motivation for a <em>behavioral</em>, same-rubric divergence signal over self-report.</p>
+  <p><strong>AI-reliance taxonomies.</strong> RelianceScope&nbsp;[1] operationalizes reliance as a 3×3 grid of help-seeking mode × response-use mode with engagement gradations; it is the direct parent of our Layer B coding. RelianceScope is applied post-hoc by researchers; we run an adapted version as a live, orthogonal-to-score coding layer and add a per-segment verification-behavior flag. Interpretive labeling draws on critical-thinking/reliance work&nbsp;[2]. Related reliance measures include an interaction-centered human–LM reliance metric&nbsp;[20], a writing-specific reliance typology&nbsp;[21], and intervention studies on appropriate reliance&nbsp;[17].</p>
+  <p><strong>Human-in-the-loop rubric refinement.</strong> This is the closest neighbor to our calibration loop. GradeHITL&nbsp;[3] has the LLM ask experts targeted questions and rewrite the rubric from their answers; GradeOpt&nbsp;[4] and CoTAL&nbsp;[5] refine guidelines/prompts from feedback; confusion-aware methods optimize rubrics where the model is systematically confused&nbsp;[6]; and reflect-and-revise methods refine essay-scoring rubrics against observed human-score discrepancies&nbsp;[23]. Our differentiators (§4.5): the calibration corpus is <em>passive instructor overrides</em> (labels teachers produce anyway, not solicited Q&amp;A); the trigger is a per-criterion override-frequency and signed/absolute-delta ledger; the redraft is staged as an <em>inactive, versioned</em> rubric that is never auto-applied; and every score is stamped with its producing rubric version. The planned score-level calibration layer builds on LLM-Rubric's human-calibrated rubric scoring&nbsp;[7].</p>
+
+  <h2><span class="num">3</span>System overview</h2>
+  <p>Calibrated Judgment is grounded in Evidence-Centered Design&nbsp;[18]: every scored signal traces to a named writing standard and a named theoretical source, and the platform enforces a "no row, no claim" rule — a signal may render as a claim only if an evidence table states what it supports, how much confidence it can bear, and the alternatives it does not rule out.</p>
+  <p>The system assesses <strong>two constructs that are never blended into one score</strong>:</p>
+  <ul class="frames">
+    <li><strong>Layer A — writing-standard mastery.</strong> Twelve atomic criteria mapped to Maryland College and Career Ready standards for grades 11–12 argumentative writing, each with six behaviorally anchored levels (0–5) following trait-level AES practice&nbsp;[19]. Two holistic criteria (audience awareness; sophistication of reasoning) are marked <em>teacher-reserve</em>: still scored, but advisory and always routed to a human. Layer A is scored on <strong>both</strong> channels.</li>
+    <li><strong>Layer B — AI-interaction quality.</strong> RelianceScope-style coding of the dialogue, reported as a 3×3 grid plus an interpretive label. Layer B <strong>contextualizes</strong> interpretation and is <em>never</em> folded into a Layer A score, because stakeholders read rubric scores as writing proficiency and contaminating them with reliance behavior would corrupt the construct.</li>
+  </ul>
+
+  <h2><span class="num">4</span>Method</h2>
+
+  <h3><span class="num">4.1</span>Halo-controlled, criterion-referenced scoring</h3>
+  <p>A grading run builds one unit of work per criterion per channel (12 × 2 = 24) and runs each <strong>three times</strong>. Each call sees exactly one criterion, its anchors, and one source document — never the model's other scores — so a grader that has just awarded a 5 cannot let that halo bleed into the next criterion. The output contract puts <strong>evidence before score</strong>: the model quotes verbatim support, reasons against the anchors, then commits to an integer 0–5, and <code>no-evidence</code> is an explicitly legitimate answer.</p>
+  <p>Three passes are aggregated into one record: if a majority are <code>no-evidence</code> (or none is numeric) the record is <code>no-evidence</code> and is displayed as absent, never imputed; otherwise the score is the <strong>median</strong> and the disagreement is the <strong>spread</strong> (max − min). Confidence is derived from evidence, not self-report. Teacher-reserve criteria and spread-≥-2 records route to the instructor queue; thin-but-consistent records do not, so the queue surfaces genuine disagreement rather than every marginal case.</p>
+
+  <h3><span class="num">4.2</span>The evidence-provenance and student-attribution guards</h3>
+  <p><strong>Provenance.</strong> Every quote is checked to appear verbatim in the source after normalizing whitespace and quote characters. Fabricated quotes are dropped, and a pass whose quotes are <em>all</em> fabricated is demoted to <code>no-evidence</code>. A score without surviving evidence does not exist — a concrete countermeasure to the unfaithful-rationale problem&nbsp;[10].</p>
+  <p><strong>Attribution as admissibility.</strong> On the process channel, a quote is admissible evidence of the student's mastery only if it appears in a turn the <em>student</em> wrote. Assistant-authored text is inadmissible <strong>even when the student copies it back verbatim</strong>. This is enforced twice: the prompt states it as its most important rule, and the engine independently re-locates each quote in a student-authored turn. A bundled adversarial exemplar — a "parrot" trace whose student turns are entirely copied from the assistant — exists as a standing regression test. We frame this not as AI-text <em>detection</em> but as an <strong>evidence-eligibility rule inside scoring</strong>: not "was this span AI-written?" but "does this span count as evidence of the student's own mastery of this criterion?"</p>
+
+  <h3><span class="num">4.3</span>Layer B: reliance coding, kept orthogonal</h3>
+  <p>Separately, the dialogue is segmented (each student turn with its surrounding assistant turns) and each segment is coded on the RelianceScope grid&nbsp;[1]: help-seeking mode and response-use mode (each passive/active/constructive) plus a verification-behavior flag — the marker recent work associates with appropriate rather than over-reliance&nbsp;[22]. Segments roll up to an interpretive label — reflective, cautious, thoughtless, or collaborative. None of this touches the Layer A writing score.</p>
+
+  <h3><span class="num">4.4</span>The trace–product divergence construct</h3>
+  <p>Because both channels score the same atomic criteria, per-dimension divergence is apples-to-apples: <code>divergence = product − trace</code>, computed on effective (override-aware) scores. The platform surfaces a headline framed as a <strong>hypothesis</strong>:</p>
+  <ul class="frames">
+    <li><strong>Product ≫ trace, with a passive/thoughtless reliance profile</strong> → <em>possible over-reliance</em>: the polish of the essay may come from the assistant; probe the flagged dimensions in conference or an unassisted task.</li>
+    <li><strong>Product ≫ trace, without that profile</strong> → possibly legitimate drafting/revision work the dialogue never showed; verify before crediting.</li>
+    <li><strong>Trace ≫ product</strong> → an <em>execution/transfer gap</em>: the student understands the material in conversation but does not execute it in the essay; the instructional target is drafting and transfer, not concepts.</li>
+    <li><strong>Convergence with constructive engagement</strong> → the strongest case that the scores can be read at face value.</li>
+  </ul>
+  <p>The design encodes a testable hypothesis (H1): <em>divergence magnitude is predicted by the Layer B reliance pattern</em>. Crucially, divergence is estimated <strong>within a single assignment from one rubric</strong>, in contrast to capability-gap work that requires separate assisted-vs-independent tasks&nbsp;[16] or relies on self-report shown not to track the real gap&nbsp;[15].</p>
+
+  <h3><span class="num">4.5</span>Override-driven, versioned calibration</h3>
+  <p>Instructor judgment is the authoritative layer, and the system is built to <em>learn from being corrected</em> without ever silently changing what it does.</p>
+  <ul class="frames">
+    <li><strong>Overrides as a labeled ledger.</strong> Each override (per criterion × channel, with a required rationale) retains the LLM's advisory score alongside the teacher's. A reliability dashboard computes, per criterion, override frequency and the mean signed and absolute delta. A criterion whose average absolute delta exceeds a threshold over enough overrides is flagged as consistently miscalibrated.</li>
+    <li><strong>Human-gated guidance redraft.</strong> For a flagged criterion, the system asks the model to turn the <em>instructor's own corrections</em> into a replacement guidance text — never rewriting the anchor descriptors (guarded by an allowlist and anti-rewrite length checks), only the explicitly instructional guidance field. The result is <strong>staged as an inactive rubric version</strong> showing current vs. proposed; it changes nothing until a human publishes it.</li>
+    <li><strong>Versioned reproducibility.</strong> Rubrics are never edited in place: any save publishes a new version, and <strong>every score record stores the exact version that produced it</strong>. This turns "I changed the guidance, re-graded, and the score moved" from an anecdote into a reproducible, auditable claim — and makes the override corpus an exportable dataset for a downstream, human-calibrated score model&nbsp;[7].</li>
+  </ul>
+  <p>This packaging — overrides-as-corpus, a per-criterion miscalibration ledger, a human-gated <em>inactive</em> redraft, and per-score version stamping — is what distinguishes the loop from feedback-driven rubric optimizers that solicit input or auto-apply revisions&nbsp;[3, 4, 5, 6].</p>
+
+  <h2><span class="num">5</span>Implementation</h2>
+  <p>The reference implementation is a React client with a FastAPI/SQLite backend, but its defining property for adoption and replication is that <strong>the grading engine runs in two places with identical behavior</strong>. The Python engine — prompts, guards, three-pass aggregation, style molding, divergence, reliance coding — has a line-for-line TypeScript port that runs <strong>entirely in the browser</strong>. This yields a backend-free static build in which the browser is its own backend: bundled exemplar sessions are explorable with no setup, and live grading calls the provider <strong>directly from the browser with a user-supplied (bring-your-own) key</strong> that is never persisted or transmitted to any server. All state lives in the browser and is exportable as a portable JSON file.</p>
+  <p>Two consequences matter. First, <strong>replication is cheap</strong>: a reviewer or instructor can run the full method from a static URL with their own key — no server, no institutional data leaving their control, a meaningful property when the inputs are student essays. Second, the dual deployment is a natural <strong>ablation harness</strong>: the guards, the pass count, and the calibration trigger are all parameters, and the engine is small enough to instrument for the study below.</p>
+
+  <h2><span class="num">6</span>Validation plan</h2>
+  <p>The test suite proves the machinery is <em>correct</em> — aggregation, routing, guards, and provenance behave as specified — but not that the scores are <em>right</em>. We therefore frame every score as advisory and specify the study the design is built to support:</p>
+  <ol class="contrib">
+    <li><strong>Human agreement (Layer A).</strong> Quadratic-weighted κ and exact/adjacent agreement against instructor grades on held-out essays, per criterion and per channel, including <strong>discriminative-validity</strong> checks across genuinely different-quality work — not merely distributional agreement.</li>
+    <li><strong>Guard ablations.</strong> Effect of the provenance and student-attribution guards on agreement and on adversarial (parrot) inputs; false-admission rate of copied content with the attribution guard on vs. off.</li>
+    <li><strong>Divergence hypothesis (H1).</strong> Whether per-dimension divergence magnitude is predicted by the Layer B reliance profile, and whether the over-reliance flag agrees with independent capability estimates.</li>
+    <li><strong>Calibration-loop effect.</strong> Longitudinal: does per-criterion override delta decrease after a published, override-drafted guidance revision, relative to unchanged criteria — a within-subject, version-stamped comparison the data model already supports?</li>
+    <li><strong>Reliance-coding validity.</strong> Re-validation of RelianceScope-style coding against human coding on our dialogue data&nbsp;[1].</li>
+  </ol>
+
+  <h2><span class="num">7</span>Limitations and ethics</h2>
+  <p>The rubric is anchored to specific state standards for grades 11–12; other levels require replacing the construct map, not just prompt text. Half the system requires a dialogue trace; without one, only the product scorer remains. On the static build, grading runs in the user's browser under their key and rate limits, and provider CORS policy — not the app — decides which providers answer a direct browser call. The platform is a research instrument, not a cleared system of record: real use requires attention to FERPA-equivalent requirements, and no readiness-gate or certification claim is made. Finally, the over-reliance framing is deliberately hypothesis-level: a divergence is a prompt for a conversation, never an accusation.</p>
+
+  <h2><span class="num">8</span>Conclusion</h2>
+  <p>Grading the same rubric against both the essay and the dialogue that produced it, and treating their signed gap as the object of interest, reframes AI-assisted writing assessment from <em>detecting</em> AI use to <em>measuring where the artifact and the student diverge</em>. Made trustworthy by halo control, provenance and attribution guards, and a human-gated, versioned calibration loop that learns from instructor overrides, the dual-channel signal becomes something an instructor can act on. The combination — a divergence-based dual-channel scorer whose disagreements with teachers feed a reproducible recalibration loop — has no direct prior equal, and the design is built, end to end, to make its own validation study possible.</p>
+
+  <hr class="divider" />
+
+  <section class="refs">
+    <h2><span class="num">R</span>References</h2>
+    <ol>
+      <li>H. Jin, M. Yoo, J. Han, Z. Chen, S.-Y. Ahn, X. Wang. <i>RelianceScope: An Analytical Framework for Examining Students' Reliance on Generative AI Chatbots in Problem Solving.</i> Proc. 13th ACM Conf. on Learning @ Scale (L@S '26), 2026, pp. 136–147. arXiv:2602.16251; doi:10.1145/3774398.3811612. (Best Paper.)</li>
+      <li>C. Hou, G. Zhu, V. Sudarshan. <i>The role of critical thinking on undergraduates' reliance behaviours on generative AI in problem-solving.</i> British Journal of Educational Technology, 56(5):1919–1941, 2025. doi:10.1111/bjet.13613.</li>
+      <li>Y. Chu, H. Li, K. Yang, Y. Copur-Gencturk, J. Tang. <i>LLM-based Automated Grading with Human-in-the-Loop</i> (the GradeHITL framework). arXiv:2504.05239, 2025.</li>
+      <li>H. Li, Y. Chu, K. Yang, Y. Copur-Gencturk, J. Tang. <i>A LLM-Powered Automatic Grading Framework with Human-Level Guidelines Optimization</i> (GradeOpt). Proc. 18th Int. Conf. on Educational Data Mining (EDM 2025), long paper 80. arXiv:2410.02165.</li>
+      <li>C. Cohn, Ashwin T. S., N. Mohammed, G. Biswas. <i>CoTAL: Human-in-the-Loop Prompt Engineering for Generalizable Formative Assessment Scoring and Feedback.</i> arXiv:2504.02323, 2025.</li>
+      <li>Y. Chu, H. Li, K. Yang, Y. Copur-Gencturk, J. Krajcik, N. Shin, J. Tang. <i>Confusion-Aware Rubric Optimization for LLM-based Automated Grading</i> (CARO). arXiv:2603.00451, 2026.</li>
+      <li>H. Hashemi, J. Eisner, C. Rosset, B. Van Durme, C. Kedzie. <i>LLM-Rubric: A Multidimensional, Calibrated Approach to Automated Evaluation of Natural Language Texts.</i> Proc. 62nd ACL (Vol. 1: Long Papers), 2024, pp. 13806–13834. ACL Anthology 2024.acl-long.745.</li>
+      <li>X. Tang, H. Chen, D. Lin, K. Li. <i>Harnessing LLMs for multi-dimensional writing assessment: Reliability and alignment with human judgments.</i> Heliyon, 10(14):e34262, 2024. doi:10.1016/j.heliyon.2024.e34262.</li>
+      <li>W. Li, M. Zhao, W. Dong, et al. (15 authors). <i>Grading Scale Impact on LLM-as-a-Judge: Human-LLM Alignment Is Highest on 0-5 Grading Scale.</i> arXiv:2601.03444, 2026.</li>
+      <li>A. Madsen, S. Chandar, S. Reddy. <i>Are self-explanations from Large Language Models faithful?</i> Findings of the ACL 2024, pp. 295–337. ACL Anthology 2024.findings-acl.19; arXiv:2401.07927.</li>
+      <li>P. Manakul, A. Liusie, M. J. F. Gales. <i>SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models.</i> Proc. EMNLP 2023, pp. 9004–9017. ACL Anthology 2023.emnlp-main.557.</li>
+      <li>Z. Tian, Z. Han, Y. Chen, H. Xu, X. Yang, R. Xuan, H. Wang, L. Liao. <i>Overconfidence in LLM-as-a-Judge: Diagnosis and Confidence-Driven Solution.</i> arXiv:2508.06225, 2025.</li>
+      <li>S. Crossley, Y. Tian, J. S. Choi, L. Holmes, W. Morris. <i>Plagiarism Detection Using Keystroke Logs.</i> Proc. 17th Int. Conf. on Educational Data Mining (EDM 2024), short paper 47.</li>
+      <li>A. Chen, J. Lian, X. Kuang, J. Jia. <i>Can theory-driven learning analytics dashboard enhance human-AI collaboration in writing learning? Insights from an empirical experiment.</i> arXiv:2506.19364, 2025.</li>
+      <li>I. Crk, E. Gultepe. <i>A Metacognitive Blind Spot: Student Comprehension, AI Reliance, and the Conceptual Difficulty Gap.</i> Education Sciences, 16(7):1102, 2026. doi:10.3390/educsci16071102.</li>
+      <li>G. Liu, B. Christian, T. Dumbalska, M. A. Bakker, R. Dubey. <i>AI Assistance Reduces Persistence and Hurts Independent Performance.</i> arXiv:2604.04721, 2026.</li>
+      <li>J. Y. Bo, S. Wan, A. Anderson. <i>To Rely or Not to Rely? Evaluating Interventions for Appropriate Reliance on Large Language Models.</i> Proc. CHI '25. arXiv:2412.15584; doi:10.1145/3706598.3714097.</li>
+      <li>R. J. Mislevy, L. S. Steinberg, R. G. Almond. <i>On the structure of educational assessments.</i> Measurement: Interdisciplinary Research and Perspectives, 1(1):3–62, 2003. doi:10.1207/S15366359MEA0101_02.</li>
+      <li>Y. Attali, J. Burstein. <i>Automated Essay Scoring With e-rater V.2.</i> J. Technology, Learning, and Assessment, 4(3), 2006.</li>
+      <li>K. Zhou, J. D. Hwang, X. Ren, N. Dziri, D. Jurafsky, M. Sap. <i>REL-A.I.: An Interaction-Centered Approach To Measuring Human-LM Reliance.</i> Proc. NAACL 2025 (Long Papers), pp. 11148–11167. ACL Anthology 2025.naacl-long.556.</li>
+      <li>S. Hossain. <i>Four Types of LLM Reliance and Their Predictors Among Undergraduate Writers: A Mixed-Methods Study at a Minority-Serving R1 University.</i> arXiv:2606.28749, 2026.</li>
+      <li>H.-P. Lee, A. Sarkar, L. Tankelevitch, I. Drosos, S. Rintel, R. Banks, N. Wilson. <i>The Impact of Generative AI on Critical Thinking: Self-Reported Reductions in Cognitive Effort and Confidence Effects From a Survey of Knowledge Workers.</i> Proc. CHI '25. doi:10.1145/3706598.3713778.</li>
+      <li>K. Harada, L. Yoshida, T. Kojima, Y. Iwasawa, Y. Matsuo. <i>Automated Refinement of Essay Scoring Rubrics for Language Models via Reflect-and-Revise.</i> arXiv:2510.09030, 2025.</li>
+      <li>D. Li, B. Jiang, L. Huang, A. Beigi, C. Zhao, Z. Tan, A. Bhattacharjee, et al. (13 authors). <i>From Generation to Judgment: Opportunities and Challenges of LLM-as-a-judge.</i> Proc. EMNLP 2025 (Main). ACL Anthology 2025.emnlp-main.138; arXiv:2411.16594.</li>
+    </ol>
+  </section>
+
+  <p class="endnote">Draft companion to the open-source platform at <a href="https://calibratedjudgment.org">calibratedjudgment.org</a>. All references verified against arXiv, ACL Anthology, ACM DL, and journal DOIs. Validation results are not yet in; every score the system produces is advisory to the instructor.</p>
+</article>
+
+</body>
+</html>
