@@ -2,17 +2,8 @@ import { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import type { User } from '../auth';
+import { ARTIFACTS } from '../artifacts';
 import { isStatic } from '../local/mode';
-
-const REPO_URL = 'https://github.com/wrgr/calibratedjudgment';
-
-// Static-file links (served from the site root alongside index.html).
-const DOCS = [
-  { href: 'paper.html', label: 'Read the paper', primary: true },
-  { href: 'paper.pdf', label: 'Paper (PDF)' },
-  { href: 'poster.pdf', label: 'Poster (PDF)' },
-  { href: REPO_URL, label: 'GitHub', external: true },
-];
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -73,7 +64,7 @@ export default function Login() {
           </div>
 
           <nav className="mt-7 flex flex-wrap gap-2.5" aria-label="Project documents">
-            {DOCS.map((d) => (
+            {ARTIFACTS.map((d) => (
               <a
                 key={d.href}
                 href={d.href}
