@@ -1,6 +1,7 @@
-import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { isStaff, useAuth } from './auth';
 import type { User } from './auth';
+import { Footer } from './components/Footer';
 import { TourProvider } from './components/Tour';
 import { isStatic } from './local/mode';
 
@@ -52,11 +53,16 @@ export default function AppShell() {
         className="sticky top-0 flex h-screen w-60 shrink-0 flex-col px-4 py-5 max-md:hidden"
         style={{ background: 'var(--rail-bg)', color: 'var(--rail-ink)' }}
       >
-        <div className="font-display text-[1.35rem] leading-tight" style={{ fontWeight: 590 }}>
+        <Link
+          to="/"
+          className="font-display block text-[1.35rem] leading-tight transition-opacity hover:opacity-80"
+          style={{ fontWeight: 590, color: 'var(--rail-ink)' }}
+          aria-label="Home"
+        >
           Calibrated
           <br />
           Judgment
-        </div>
+        </Link>
         <div className="mt-1.5 text-[11px] leading-snug" style={{ color: 'var(--rail-muted)' }}>
           Competence from process and product — essay traces with AI reliance.
         </div>
@@ -125,7 +131,7 @@ export default function AppShell() {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-5 pb-16 pt-5 md:px-8">
+      <main className="flex min-w-0 flex-1 flex-col px-5 pb-8 pt-5 md:px-8">
         {/* mobile nav (the rail is hidden below md) */}
         <nav data-tour="nav" className="mb-4 flex flex-wrap gap-1 md:hidden" aria-label="Primary">
           {nav.map((t) => (
@@ -144,7 +150,10 @@ export default function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <Outlet />
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <Footer />
       </main>
     </div>
     </TourProvider>
